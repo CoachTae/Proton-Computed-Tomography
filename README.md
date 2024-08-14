@@ -1,4 +1,4 @@
-# Proton Computed Tomography (ASU & Mayo Clinic)
+# Proton Computed Tomography
 
 ## Participants 
 Ricardo Alarcon: Professor at ASU  
