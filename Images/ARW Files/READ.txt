@@ -1,0 +1,18 @@
+PLACE ARW FILES HERE.
+
+The code expects the existence of the following folders:
+Ce 80 MeV
+Ce 100 MeV
+Ce 120 MeV
+Ce 140 MeV
+Ce 160 MeV
+Ce 180 MeV
+Ce 200 MeV
+Ce 220 MeV
+MB 200 MeV (Muscle Only)
+MB 200 MeV (Bone Only)
+Ph 220 MeV (2 Blocks)
+Ph 220 MeV (4 Blocks)
+Ph 220 MeV (6 Blocks)
+
+I've tried to generalize the code such that the folders don't have to have these exact names, but I have no guarantee that I've covered all of my bases.
