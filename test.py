@@ -49,32 +49,17 @@ regular_runs = ['80 MeV', '100 MeV', '120 MeV', '140 MeV', '160 MeV', '180 MeV',
 tissue_runs = ['Muscle', 'Bone']
 
 acrylic_runs = ['2 Blocks', '4 Blocks', '6 Blocks']
+acrylic_run_files = [Block5cm, Block10cm, Block15cm]
 acrylic_runs_cm = ['5cm Acrylic', '10cm Acrylic', '15cm Acrylic']
 
-popts = []
-for run in tissue_runs:
-    for median in medians:
-        try:
-            gaussian = database[run][median]['Subtracted']['X Gaussian']
-            distances = database[run][median]['Subtracted']['X Gaussian Distances']
-            shift = database[run][median]['Subtracted']['X Gaussian Shift']
-            popt, pcov, corr = supp2.gaussian_curve_fit(gaussian, x_values=distances, include_errors=True, corr=True)
-            popts.append(popt)
-            print('\n\n\n')
-            print(f'For {run}, the fitting parameters are: ')
-            print(f'Correlation Coefficient:\n{corr}')
-            print('95% Confidence:')
-            print(f'Amplitude: {popt[0]} +/- {1.96*pcov[0]}')
-            print(f'Standard Deviation: {popt[2]} +/- {1.96*pcov[2]}')
-            print(f'\n99% Confidence:')
-            print(f'Amplitude: {popt[0]} +/- {2.576*pcov[0]}')
-            print(f'Standard Deviation: {popt[2]} +/- {2.576*pcov[2]}')
-            
-            
-        except:
-            pass
-
-supp2.plot_gaussian(popts, distances=distances, shift=shift, multiple=True, graphs=tissue_runs, title='Spread By Phantom Type')
+for i, folder in enumerate(acrylic_runs):
+    total_sum = 0
+    num_files = 0
+    for file in database[folder].keys():
+        total_sum += database[folder][file]['Subtracted']['Volume']
+        num_files += 1
+    avg = total_sum / num_files
+    print(f'Average: {avg}')
 sys.exit()
 
 
