@@ -5,7 +5,9 @@ Ricardo Alarcon: Professor at ASU
 Skylar Clymer: Physics PhD Student at ASU  
 Evrim Gulser: Physics Undergrad at ASU  
 Lukas Domer: Physics Undergrad at ASU  
-Arda Gulser: Physics Undergrad at ASU  
+Arda Gulser: Physics Undergrad at ASU 
+Paul Mulqueen: CEO of Proton Calibration Technologies  
+Stephen Sledge: Proton Calibration Technologies   
 Daniel Robertson: Mayo Clinic  
 Martin Bues: Mayo Clinic  
 
