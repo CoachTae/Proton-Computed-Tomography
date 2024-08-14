@@ -1,13 +1,13 @@
 # Proton Computed Tomography (ASU & Mayo Clinic)
 
 ## Participants 
-Ricardo Alarcon: Professor at ASU 
-Skylar Clymer: Physics PhD Student at ASU 
-Evrim Gulser: Physics Undergrad at ASU 
-Lukas Domer: Physics Undergrad at ASU 
-Arda Gulser: Physics Undergrad at ASU 
-Daniel Robertson: Mayo Clinic
-Martin Bues: Mayo Clinic
+Ricardo Alarcon: Professor at ASU  
+Skylar Clymer: Physics PhD Student at ASU  
+Evrim Gulser: Physics Undergrad at ASU  
+Lukas Domer: Physics Undergrad at ASU  
+Arda Gulser: Physics Undergrad at ASU  
+Daniel Robertson: Mayo Clinic  
+Martin Bues: Mayo Clinic  
 
 ## Goal of PCT
 The goal of the PCT efforts is to provide a strong foundation and proof-of-concept for the ability to use therapeutic proton beams for the purpose of medical imaging, particularly to assist in more accurate imaging for cancer therapy.
