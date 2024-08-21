@@ -568,7 +568,7 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
                   file_name = '', fit = False, pixelspace = False,
                   mm_per_pixel = None, minSD = 1, fontsize = 14,
                   ticksize = 12, titlesize=20, pointsize=12, center=True, multiple=False,
-                  graphs=None):
+                  graphs=None, xleft=None, xright=None):
     '''
     Creates a 2D plot of an expected gaussian.
 
@@ -606,11 +606,24 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
         It's been found that some files have issues with this, so it's now
         an optional parameter for the sake of troubleshooting.
 
+    xleft: Crops the image to start at this x-value (recommended value is -10)
+
+    xright: Crops the image to end at this x-value (recommended value is 10)
+
     PLEASE READ:
         multiple: If True, pass in a list of popt's for the "gaussian" argument.
             It will plot the popt's on top of each other.
 
         graphs: a list of names correlating to each of the popt's provided
+
+        shift: This is expected to be a single value. It is the amount that each value in
+            distance should be shifted left in order to center distances at 0. You can
+            usually pull this from the database:
+                distances = Database[folder][image]['Subtracted']['X Gaussian Distances']
+                shift = Database[folder][image]['Subtracted']['X Gaussian Shift']
+            The exact image you choose from the set of multiple images isn't relevant.
+            Therefore, an alternative could be a list of any distance values where
+                the distance for each entry increments by {mm_per_pixel}
     
     No return value. This function simply plots the graph.
     '''
@@ -691,6 +704,15 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
     else:
         x_vals = np.array(distances) if not pixelspace else np.arange(len(distances))
 
+        if not isinstance(shift, int) and not isinstance(shift, float):
+            print("\n\n\n")
+            print("ERROR! PLEASE READ THE MESSAGE BELOW\n\n")
+            print("Shift given was not of type int or float.")
+            print("Shift given is of data type ", type(shift))
+            print("Please read the docstring below for additional help.")
+            print("\n\n", plot_gaussian.__doc__)
+            sys.exit()
+            
         x_vals = x_vals - shift
         
         # Center at 0
@@ -710,9 +732,21 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
     elif pixelspace:
         ax.set_xlabel('Pixel Number', fontsize=fontsize)
     ax.set_ylabel('Brightness', fontsize=fontsize)
+
+
+    # For cropping the x-axis manually
+    if xright is None and xleft is None:
+        pass
+    elif xright is not None and xleft is None:
+        ax.set_xlim(right=xright)
+    elif xright is None and xleft is not None:
+        ax.set_xlim(left = xleft)
+    else:
+        ax.set_xlim(xleft, xright)
     plt.xticks(fontsize=ticksize)
     plt.yticks(fontsize=ticksize)
     ax.set_title(title, fontsize=titlesize)
+
 
     if show:
         plt.show()

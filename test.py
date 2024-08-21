@@ -56,7 +56,7 @@ for i, folder in enumerate(acrylic_runs):
     total_sum = 0
     num_files = 0
     for file in database[folder].keys():
-        total_sum += database[folder][file]['Subtracted']['Volume']
+        total_sum += database[folder][file]['Subtracted']['X Popt'][2]
         num_files += 1
     avg = total_sum / num_files
     print(f'Average: {avg}')
