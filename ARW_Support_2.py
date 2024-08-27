@@ -666,17 +666,6 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
 
         else:
             ax.scatter(shifted_x_vals, gaussian, color='red', s=size)
-            x_vals = np.array(distances) if not pixelspace else np.arange(len(gaussian))
-        # Shift x_values to center Gaussian at x=0
-        # Find the value to shift by
-        if center and (shift is None or pixelspace):
-            shift = peak_finder(gaussian, pixelspace=pixelspace, mm_per_pixel=mm_per_pixel, minSD=minSD)
-        elif not center and shift is None:
-            shift = 0
-        elif shift is not None:
-            shift = shift
-            
-        shifted_x_vals = x_vals - shift
 
         
         if fit:
