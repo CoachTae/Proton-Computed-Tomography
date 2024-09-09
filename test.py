@@ -49,23 +49,36 @@ regular_runs = ['80 MeV', '100 MeV', '120 MeV', '140 MeV', '160 MeV', '180 MeV',
 tissue_runs = ['Muscle', 'Bone']
 
 acrylic_runs = ['2 Blocks', '4 Blocks', '6 Blocks']
-acrylic_run_files = [Block5cm, Block10cm, Block15cm]
 acrylic_runs_cm = ['5cm Acrylic', '10cm Acrylic', '15cm Acrylic']
 
-for i, folder in enumerate(acrylic_runs):
-    total_sum = 0
-    num_files = 0
+for folder in database.keys():
+    files = []
+    volumes = []
     for file in database[folder].keys():
-        total_sum += database[folder][file]['Subtracted']['X Popt'][2]
-        num_files += 1
-    avg = total_sum / num_files
-    print(f'Average: {avg}')
-sys.exit()
+        # Compile all volumes in the folder
+        volumes.append(database[folder][file]['Subtracted']['Volume'])
+        files.append(file)
 
+    # Calculate average amongst the given volumes
+    mean = np.mean(volumes)
 
-images = supp2.get_useful_images('Ce 80 MeV', include_names=True)
-for image in images:
-    print(image[2])
+    # Find how much each volume deviates from the mean
+    diffs = abs(np.array(volumes) - mean)
+
+    closest_index = np.argmin(diffs)
+
+    print(f"{folder}: {files[closest_index]}")
+    
+        
+
+image = database['220 MeV'][No_Block]['Subtracted']
+gaussian = image['X Gaussian']
+distances = image['X Gaussian Distances']
+popt = image['X Popt']
+pcov = image['X Pcov']
+shift = image['X Gaussian Shift']
+#supp2.plot_3d(image[1500:2500, 2300:3300], title='221.3 MeV Raw Output (No Phantom)')
+supp2.plot_gaussian(gaussian, fit=True, popt=popt, shift=shift, title='221.3 MeV Beam, No Phantom')
 
 sys.exit()
 

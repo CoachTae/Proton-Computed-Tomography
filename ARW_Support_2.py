@@ -60,6 +60,48 @@ def process(file: str, autosubtract=False):
 
     return image
 
+def apply_median_filter(image, size=(3,3)):
+    return median_filter(image, size)
+
+def subtract_background(image, subtract=575, autosubtract=False):
+    '''
+    Takes down the value in all pixels in an image by some amount.
+
+    image = A 2D array from which the background will be subtracted from
+
+    subtract = Integer amount that will be subtracted from each pixel
+
+    autosubtract: Will use a simple algorithm to find the subtraction value
+        that yields the best curve fit, overriding the "subtract" parameter
+    '''
+
+    image = image.astype(np.int32)
+    
+    if autosubtract:
+        best_subtraction = 0
+
+        for exponent in range(3):
+            corrs = []
+            for i in range(10):
+                subtraction = i * (10 ** (2 - exponent))
+                image_adjusted = image - subtraction
+                # Set lower bound of 0. Anything below 0 gets set to 0.
+                image_adjusted = np.clip(image, 0 , None)
+                gaussian = gaussian_2d(image_adjusted, 0)
+                _, corr = gaussian_curve_fit(gaussian, corr=True)
+                corrs.append(corr)
+            best_subtraction += np.argmax(corrs) * (10 ** (2 - exponent))
+
+        image -= best_subtraction
+        image = np.clip(image, 0, None)
+        return image
+
+    else:
+        image -= subtract
+        # Set lower bound of 0. Anything below 0 gets set to 0
+        image = np.clip(image, 0, None)
+        return image
+
 def convert(pixel, mm_per_pixel = None): # Units are in mm
     '''
     Converts pixel number into mm
@@ -318,7 +360,7 @@ def peak_finder(gaussian, x_values=None, pixelspace=False, mm_per_pixel=None,
     elif not pixelspace and x_values is None:
         x_values = get_distances(gaussian)
         mean_guess = convert(np.mean(gaussian))
-        SD_guess = np.std(gaussian)
+        SD_guess = convert(np.std(gaussian))
     elif pixelspace and x_values is not None:
         x_values = x_values
         mean_guess = np.mean(gaussian)
@@ -326,7 +368,7 @@ def peak_finder(gaussian, x_values=None, pixelspace=False, mm_per_pixel=None,
     else:
         x_values = x_values
         mean_guess = convert(np.mean(gaussian))
-        SD_guess = np.std(gaussian)
+        SD_guess = convert(np.std(gaussian))
         
 
 
@@ -436,7 +478,7 @@ def gaussian_curve_fit(gaussian, x_values=None, include_errors = False, pcov_lis
     elif not pixelspace and x_values is None:
         x_values = get_distances(gaussian)
         mean_guess = convert(np.mean(gaussian))
-        SD_guess = np.std(gaussian)
+        SD_guess = convert(np.std(gaussian))
     elif pixelspace and x_values is not None:
         x_values = x_values
         mean_guess = np.mean(gaussian)
@@ -444,7 +486,7 @@ def gaussian_curve_fit(gaussian, x_values=None, include_errors = False, pcov_lis
     else:
         x_values = x_values
         mean_guess = convert(np.mean(gaussian))
-        SD_guess = np.std(gaussian)
+        SD_guess = convert(np.std(gaussian))
         
 
 
@@ -452,7 +494,7 @@ def gaussian_curve_fit(gaussian, x_values=None, include_errors = False, pcov_lis
     # Get initial fit. p0 is guessed values to help the fit function
         # converge quicker
     popt, pcov = curve_fit(gaussian_func, x_values, gaussian, p0=[max(gaussian), mean_guess, SD_guess])
-
+    
     # This loop looks for near-delta functions caused by noise that was not
         # filtered out enough and still larger than our actual gaussian
     # It sets noise values to 0 and refits until we get a proper gaussian
@@ -477,16 +519,29 @@ def gaussian_curve_fit(gaussian, x_values=None, include_errors = False, pcov_lis
     
     # In case the above loop was never needed, initialized max_value
     max_value = np.argmax(gaussian)
-    
-    # Now that we've (hopefully) filtered out the rest of the noise, we do the actual fit
+
+    '''# Now that we've (hopefully) filtered out the rest of the noise, we do the actual fit
     # Create window to only fit to the main part of the gaussian
     gaussian_window = gaussian[max_value-275:max_value+275]
     x_values_window = x_values[max_value-275:max_value+275]
-    popt, pcov = curve_fit(gaussian_func, x_values_window, gaussian_window, p0=[max(gaussian), mean_guess, SD_guess])
+
+    if pixelspace:
+        mean_guess = np.mean(gaussian_window)    # Initial guess for scipy fit function
+        SD_guess = np.std(gaussian_window) / mm_per_pixel
+    else:
+        mean_guess = convert(np.mean(gaussian_window))
+        SD_guess = convert(np.std(gaussian_window))
+    #print(max(gaussian_window))
+    #print(mean_guess)
+    #print(SD_guess)
+    #plot_gaussian(gaussian_window, distances=x_values_window)
+    popt, pcov = curve_fit(gaussian_func, x_values_window, gaussian_window, p0=[max(gaussian_window), mean_guess, SD_guess])
+    '''
 
     if popt[2] < 0:
         popt[2] = abs(popt[2])
-    
+
+    #popt[1] = 0
     gaussian_values = gaussian_func(x_values, *popt)
 
     # Decide what values to return
@@ -610,6 +665,9 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
 
     xright: Crops the image to end at this x-value (recommended value is 10)
 
+    test: Can be given integer values to test the code up to certain points.
+        Used for troubleshooting hard-to-find bugs.
+
     PLEASE READ:
         multiple: If True, pass in a list of popt's for the "gaussian" argument.
             It will plot the popt's on top of each other.
@@ -637,6 +695,8 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
             x_vals = np.arange(len(gaussian)) if pixelspace else get_distances(np.arange(len(gaussian)), mm_per_pixel)
         else:
             x_vals = np.array(distances) if not pixelspace else np.arange(len(gaussian))
+
+        
         # Shift x_values to center Gaussian at x=0
         # Find the value to shift by
         if center and (shift is None or pixelspace):
@@ -645,6 +705,7 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
             shift = 0
         elif shift is not None:
             shift = shift
+
             
         shifted_x_vals = x_vals - shift
 
@@ -657,34 +718,16 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
             else:
                 popt = popt
 
-            gaussian_vals = gaussian_func(shifted_x_vals, popt[0], popt[1], popt[2])
+            gaussian_vals = gaussian_func(shifted_x_vals, popt[0], popt[1]-shift, popt[2])
 
             # Plot data and fit
-            ax.plot(shifted_x_vals, gaussian_vals, label='Gaussian Fit', color='blue')
+            plt.plot(shifted_x_vals, gaussian_vals, label='Gaussian Fit', color='blue')
             plt.legend()
-            ax.scatter(shifted_x_vals, gaussian, color='red', s=size)
+            plt.scatter(shifted_x_vals, gaussian, color='red', s=size)
 
         else:
-            ax.scatter(shifted_x_vals, gaussian, color='red', s=size)
+            plt.scatter(shifted_x_vals, gaussian, color='red', s=size)
 
-        
-        if fit:
-            if popt is None or pixelspace:
-                popt = gaussian_curve_fit(gaussian, x_values=shifted_x_vals, minSD=minSD, pixelspace=pixelspace, mm_per_pixel=mm_per_pixel)
-                print("Popt from plotting function")
-                print(popt)
-            else:
-                popt = popt
-
-            gaussian_vals = gaussian_func(shifted_x_vals, popt[0], popt[1], popt[2])
-
-            # Plot data and fit
-            ax.plot(shifted_x_vals, gaussian_vals, label='Gaussian Fit', color='blue')
-            plt.legend()
-            ax.scatter(shifted_x_vals, gaussian, color='red', s=size)
-
-        else:
-            ax.scatter(shifted_x_vals, gaussian, color='red', s=size)
 
     elif multiple and distances is None:
         print("To call 'multiple', you need to provide a single distances array to calculate values at")
@@ -744,47 +787,6 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
         plt.savefig(file_name, dpi=800)
         plt.close()
         
-def apply_median_filter(image, size=(3,3)):
-    return median_filter(image, size)
-
-def subtract_background(image, subtract=575, autosubtract=False):
-    '''
-    Takes down the value in all pixels in an image by some amount.
-
-    image = A 2D array from which the background will be subtracted from
-
-    subtract = Integer amount that will be subtracted from each pixel
-
-    autosubtract: Will use a simple algorithm to find the subtraction value
-        that yields the best curve fit, overriding the "subtract" parameter
-    '''
-
-    image = image.astype(np.int32)
-    
-    if autosubtract:
-        best_subtraction = 0
-
-        for exponent in range(3):
-            corrs = []
-            for i in range(10):
-                subtraction = i * (10 ** (2 - exponent))
-                image_adjusted = image - subtraction
-                # Set lower bound of 0. Anything below 0 gets set to 0.
-                image_adjusted = np.clip(image, 0 , None)
-                gaussian = gaussian_2d(image_adjusted, 0)
-                _, corr = gaussian_curve_fit(gaussian, corr=True)
-                corrs.append(corr)
-            best_subtraction += np.argmax(corrs) * (10 ** (2 - exponent))
-
-        image -= best_subtraction
-        image = np.clip(image, 0, None)
-        return image
-
-    else:
-        image -= subtract
-        # Set lower bound of 0. Anything below 0 gets set to 0
-        image = np.clip(image, 0, None)
-        return image
     
 
 def plot_run_sums(folder_name, title='', autosubtract=True,
