@@ -83,3 +83,12 @@ mean_runs = [mean80,
              mean15cm,
              meanmuscle,
              meanbone]
+
+regular_runs = ['80 MeV', '100 MeV', '120 MeV', '140 MeV', '160 MeV', '180 MeV', '200 MeV', '220 MeV']
+
+tissue_runs = ['Muscle', 'Bone']
+
+acrylic_runs = ['2 Blocks', '4 Blocks', '6 Blocks']
+
+# Used for naming graphs for the acrylic runs
+acrylic_runs_cm = ['5cm Acrylic', '10cm Acrylic', '15cm Acrylic']

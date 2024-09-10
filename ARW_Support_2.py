@@ -377,7 +377,7 @@ def peak_finder(gaussian, x_values=None, pixelspace=False, mm_per_pixel=None,
         # converge quicker
     popt, pcov = curve_fit(gaussian_func, x_values, gaussian, p0=[max(gaussian), mean_guess, SD_guess])
 
-    # This loop looks for near-delta functions caused by noise that was not
+    '''# This loop looks for near-delta functions caused by noise that was not
         # filtered out enough and still larger than our actual gaussian
     # It sets noise values to 0 and refits until we get a proper gaussian
     while True:
@@ -397,7 +397,7 @@ def peak_finder(gaussian, x_values=None, pixelspace=False, mm_per_pixel=None,
                 continue
             except:
                 continue
-        break
+        break'''
 
     max_index = np.argmax(gaussian)
 
@@ -494,8 +494,9 @@ def gaussian_curve_fit(gaussian, x_values=None, include_errors = False, pcov_lis
     # Get initial fit. p0 is guessed values to help the fit function
         # converge quicker
     popt, pcov = curve_fit(gaussian_func, x_values, gaussian, p0=[max(gaussian), mean_guess, SD_guess])
-    
-    # This loop looks for near-delta functions caused by noise that was not
+    #print("Initial popt: ", popt)
+
+    '''# This loop looks for near-delta functions caused by noise that was not
         # filtered out enough and still larger than our actual gaussian
     # It sets noise values to 0 and refits until we get a proper gaussian
     while True:
@@ -515,7 +516,7 @@ def gaussian_curve_fit(gaussian, x_values=None, include_errors = False, pcov_lis
                 continue
             except:
                 continue
-        break
+        break'''
     
     # In case the above loop was never needed, initialized max_value
     max_value = np.argmax(gaussian)
@@ -541,7 +542,7 @@ def gaussian_curve_fit(gaussian, x_values=None, include_errors = False, pcov_lis
     if popt[2] < 0:
         popt[2] = abs(popt[2])
 
-    #popt[1] = 0
+    popt[1] = 0
     gaussian_values = gaussian_func(x_values, *popt)
 
     # Decide what values to return
@@ -718,7 +719,7 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
             else:
                 popt = popt
 
-            gaussian_vals = gaussian_func(shifted_x_vals, popt[0], popt[1]-shift, popt[2])
+            gaussian_vals = gaussian_func(shifted_x_vals, popt[0], popt[1], popt[2])
 
             # Plot data and fit
             plt.plot(shifted_x_vals, gaussian_vals, label='Gaussian Fit', color='blue')

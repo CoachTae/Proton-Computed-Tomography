@@ -7,33 +7,9 @@ import rawpy
 import time
 import ARW_Support_2 as supp2
 import json
+import Constants as const
 
 start_time = time.time()
-
-
-#----------------CONSTANTS------------------------------------------------------
-runs = [80, 100, 120, 140, 160, 180, 200, 220]
-
-# Define protons_per_frame
-protons_per_frame = [29380029.8, 27616468, 24680895.2, 26138120, 19490765.8, 28561906, 32837711.8, 29007595.4]
-
-real_energies = [80.3, 100.7, 119.7, 140.2, 159.9, 179.5, 200.4, 221.3]
-
-
-# MEDIAN RUNS
-mev80 = "SC00100.ARW"
-mev100 = "SC00161.ARW"
-mev120 = "SC00183.ARW"
-mev140 = "SC00247.ARW"
-mev160 = "SC00071.ARW"
-mev180 = "SC00266.ARW"
-mev200 = "SC00318.ARW"
-No_Block = "SC00372.ARW"
-Block5cm = "PH00012.ARW"
-Block10cm = "PH00074.ARW"
-Block15cm = "PH00107.ARW"
-muscle = "MB00000.ARW"
-bone = "MB00040.ARW"
 
 
 #------------------------Test Code----------------------------------------------
@@ -42,43 +18,37 @@ bone = "MB00040.ARW"
 with open('Database.json', 'r') as file:
     database = json.load(file)
 
-medians = [mev80, mev100, mev120, mev140, mev160, mev180, mev200, No_Block, bone, muscle, Block5cm, Block10cm, Block15cm]
-
-regular_runs = ['80 MeV', '100 MeV', '120 MeV', '140 MeV', '160 MeV', '180 MeV', '200 MeV', '220 MeV']
-
-tissue_runs = ['Muscle', 'Bone']
-
-acrylic_runs = ['2 Blocks', '4 Blocks', '6 Blocks']
-acrylic_runs_cm = ['5cm Acrylic', '10cm Acrylic', '15cm Acrylic']
-
-for folder in database.keys():
-    files = []
-    volumes = []
-    for file in database[folder].keys():
-        # Compile all volumes in the folder
-        volumes.append(database[folder][file]['Subtracted']['Volume'])
-        files.append(file)
-
-    # Calculate average amongst the given volumes
-    mean = np.mean(volumes)
-
-    # Find how much each volume deviates from the mean
-    diffs = abs(np.array(volumes) - mean)
-
-    closest_index = np.argmin(diffs)
-
-    print(f"{folder}: {files[closest_index]}")
-    
         
+popts = []
+for folder in const.regular_runs:
+    for i, file in enumerate(const.mean_runs):
+        if file in database[folder].keys():
+            popt = database[folder][file]['Subtracted']['X Popt']
+            distances = database[folder][file]['Subtracted']['X Gaussian Distances']
+            shift = database[folder][file]['Subtracted']['X Gaussian Shift']
+            popts.append(popt)
 
-image = database['220 MeV'][No_Block]['Subtracted']
-gaussian = image['X Gaussian']
-distances = image['X Gaussian Distances']
-popt = image['X Popt']
-pcov = image['X Pcov']
-shift = image['X Gaussian Shift']
-#supp2.plot_3d(image[1500:2500, 2300:3300], title='221.3 MeV Raw Output (No Phantom)')
-supp2.plot_gaussian(gaussian, fit=True, popt=popt, shift=shift, title='221.3 MeV Beam, No Phantom')
+supp2.plot_gaussian(popts, distances=distances, shift=shift, multiple=True,
+                    graphs=const.regular_runs)
+sys.exit()
+
+popts = []
+for folder in const.regular_runs:
+    for i, file in enumerate(const.mean_runs):
+        if file in database[folder].keys():
+            gaussian = database[folder][file]['Subtracted']['X Gaussian']
+            #gaussian = np.array(gaussian)
+            #gaussian = gaussian / (const.mean_ppf[i]/100000000)
+            #gaussian = gaussian.tolist()
+
+            x_vals = database[folder][file]['Subtracted']['X Gaussian Distances']
+
+            shift = database[folder][file]['Subtracted']['X Gaussian Shift']
+            
+            popt = supp2.gaussian_curve_fit(gaussian, x_values=x_vals)
+            popts.append(popt)
+
+supp2.plot_gaussian(popts, distances = x_vals, multiple=True, graphs=const.regular_runs, shift=shift, minSD=1)
 
 sys.exit()
 
