@@ -18,21 +18,25 @@ start_time = time.time()
 with open('Database.json', 'r') as file:
     database = json.load(file)
 
+image = supp2.open_bayer(const.meanmuscle)
+image = supp2.apply_median_filter(image)
+image = supp2.subtract_background(image)
+gaussian = supp2.gaussian_2d(image)
+#supp2.plot_gaussian(gaussian)
 
-
-for folder in const.regular_runs:
-    for i, file in enumerate(const.mean_runs):
+for folder in database.keys():
+    for file in const.mean_runs:
         if file in database[folder].keys():
             data = database[folder][file]
-            xSD = round(data["X Popt"][2], 3)
-            xSD_sigma = data["X Pcov"][2]
-            ySD = round(data["Y Popt"][2], 3)
-            ySD_sigma = data['Y Pcov'][2]
-
-            xSD_conf = round(2.576 * xSD_sigma, 3)
-            ySD_conf = round(2.576 * ySD_sigma, 3)
-
-            print(f"{folder}\t{xSD} +/- {xSD_conf}\t{ySD} +/- {ySD_conf}")
+            gaussian = data['X Gaussian']
+            distances = data['X Gaussian Distances']
+            shift = data['X Gaussian Shift']
+            popt = data['X Popt']
+            supp2.plot_gaussian(gaussian, distances=distances,
+                                #shift=shift,
+                                fit=True,
+                                #popt=popt,
+                                )
 
 sys.exit()
 

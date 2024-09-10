@@ -375,8 +375,12 @@ def peak_finder(gaussian, x_values=None, pixelspace=False, mm_per_pixel=None,
     
     # Get initial fit. p0 is guessed values to help the fit function
         # converge quicker
-    popt, pcov = curve_fit(gaussian_func, x_values, gaussian, p0=[max(gaussian), mean_guess, SD_guess])
-
+    bounds = ([0, -50, 0], [10000, 200, 50])
+    
+    popt, pcov = curve_fit(gaussian_func, x_values, gaussian,
+                           p0=[max(gaussian), mean_guess, SD_guess],
+                           bounds=bounds)
+    print("Peak finder popt: ", popt)
     '''# This loop looks for near-delta functions caused by noise that was not
         # filtered out enough and still larger than our actual gaussian
     # It sets noise values to 0 and refits until we get a proper gaussian
@@ -402,9 +406,9 @@ def peak_finder(gaussian, x_values=None, pixelspace=False, mm_per_pixel=None,
     max_index = np.argmax(gaussian)
 
     if pixelspace:
-        return max_index # Returns peak location in pixel number
+        return popt[1] # Returns peak location in pixel number
     else:
-        return x_values[max_index] # Returns peak location in mm
+        return popt[1] # Returns peak location in mm
 
 
    
@@ -514,7 +518,11 @@ def gaussian_curve_fit(gaussian, x_values=None, include_errors = False,
     
     # Get initial fit. p0 is guessed values to help the fit function
         # converge quicker
-    popt, pcov = curve_fit(gaussian_func, x_values, gaussian, p0=[max(gaussian), mean_guess, SD_guess])
+    bounds = ([0, -50, 0], [10000, 200, 50])
+    
+    popt, pcov = curve_fit(gaussian_func, x_values, gaussian,
+                           p0=[max(gaussian), mean_guess, SD_guess],
+                           bounds=bounds)
     #print("Initial popt: ", popt)
 
     '''# This loop looks for near-delta functions caused by noise that was not
@@ -723,6 +731,7 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
         # Find the value to shift by
         if center and (shift is None or pixelspace):
             shift = peak_finder(gaussian, pixelspace=pixelspace, mm_per_pixel=mm_per_pixel, minSD=minSD)
+            print("Shift found: ", shift)
         elif not center and shift is None:
             shift = 0
         elif shift is not None:
@@ -734,9 +743,10 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
         
         if fit or popt is not None:
             if popt is None or pixelspace:
-                popt = gaussian_curve_fit(gaussian, x_values=shifted_x_vals, minSD=minSD, pixelspace=pixelspace, mm_per_pixel=mm_per_pixel)
-                print("Popt from plotting function")
-                print(popt)
+                popt = gaussian_curve_fit(gaussian, x_values=shifted_x_vals, minSD=minSD,
+                                          pixelspace=pixelspace, mm_per_pixel=mm_per_pixel)
+                #print("Popt from plotting function")
+                #print(popt)
             else:
                 popt = popt
 
