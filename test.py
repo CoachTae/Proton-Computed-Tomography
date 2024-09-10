@@ -18,37 +18,21 @@ start_time = time.time()
 with open('Database.json', 'r') as file:
     database = json.load(file)
 
-        
-popts = []
+
+
 for folder in const.regular_runs:
     for i, file in enumerate(const.mean_runs):
         if file in database[folder].keys():
-            popt = database[folder][file]['Subtracted']['X Popt']
-            distances = database[folder][file]['Subtracted']['X Gaussian Distances']
-            shift = database[folder][file]['Subtracted']['X Gaussian Shift']
-            popts.append(popt)
+            data = database[folder][file]
+            xSD = round(data["X Popt"][2], 3)
+            xSD_sigma = data["X Pcov"][2]
+            ySD = round(data["Y Popt"][2], 3)
+            ySD_sigma = data['Y Pcov'][2]
 
-supp2.plot_gaussian(popts, distances=distances, shift=shift, multiple=True,
-                    graphs=const.regular_runs)
-sys.exit()
+            xSD_conf = round(2.576 * xSD_sigma, 3)
+            ySD_conf = round(2.576 * ySD_sigma, 3)
 
-popts = []
-for folder in const.regular_runs:
-    for i, file in enumerate(const.mean_runs):
-        if file in database[folder].keys():
-            gaussian = database[folder][file]['Subtracted']['X Gaussian']
-            #gaussian = np.array(gaussian)
-            #gaussian = gaussian / (const.mean_ppf[i]/100000000)
-            #gaussian = gaussian.tolist()
-
-            x_vals = database[folder][file]['Subtracted']['X Gaussian Distances']
-
-            shift = database[folder][file]['Subtracted']['X Gaussian Shift']
-            
-            popt = supp2.gaussian_curve_fit(gaussian, x_values=x_vals)
-            popts.append(popt)
-
-supp2.plot_gaussian(popts, distances = x_vals, multiple=True, graphs=const.regular_runs, shift=shift, minSD=1)
+            print(f"{folder}\t{xSD} +/- {xSD_conf}\t{ySD} +/- {ySD_conf}")
 
 sys.exit()
 

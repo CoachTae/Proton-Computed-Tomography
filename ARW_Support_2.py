@@ -337,7 +337,7 @@ def peak_finder(gaussian, x_values=None, pixelspace=False, mm_per_pixel=None,
     if mm_per_pixel is None:
         mm_per_pixel = accepted_mm_per_pixel
 
-    # Make a check for suviving noise above the gaussian peak
+    '''# Make a check for suviving noise above the gaussian peak
         # If the max value is too much bigger than the 2nd largest, consider it noise
     while True:
         copy = gaussian.copy()
@@ -350,7 +350,7 @@ def peak_finder(gaussian, x_values=None, pixelspace=False, mm_per_pixel=None,
             gaussian[np.argmax(gaussian)] = 0
             continue
         else:
-            break
+            break'''
 
     # Convert things to pixel space if needed.
     if pixelspace and x_values is None:
@@ -408,7 +408,8 @@ def peak_finder(gaussian, x_values=None, pixelspace=False, mm_per_pixel=None,
 
 
    
-def gaussian_curve_fit(gaussian, x_values=None, include_errors = False, pcov_list = True,
+def gaussian_curve_fit(gaussian, x_values=None, include_errors = False,
+                       shift = None, pcov_list = True,
                        corr = False, minSD = 1, pixelspace = False,
                        mm_per_pixel = None):
     '''
@@ -455,7 +456,7 @@ def gaussian_curve_fit(gaussian, x_values=None, include_errors = False, pcov_lis
     if mm_per_pixel is None:
         mm_per_pixel = accepted_mm_per_pixel
 
-    # Make a check for suviving noise above the gaussian peak
+    '''# Make a check for suviving noise above the gaussian peak
         # If the max value is too much bigger than the 2nd largest, consider it noise
     while True:
         copy = gaussian.copy()
@@ -468,7 +469,7 @@ def gaussian_curve_fit(gaussian, x_values=None, include_errors = False, pcov_lis
             gaussian[np.argmax(gaussian)] = 0
             continue
         else:
-            break
+            break'''
 
     # Convert things to pixel space if needed.
     if pixelspace and x_values is None:
@@ -485,10 +486,30 @@ def gaussian_curve_fit(gaussian, x_values=None, include_errors = False, pcov_lis
         SD_guess = np.std(gaussian) / mm_per_pixel
     else:
         x_values = x_values
+        #print("Amplitude Guess: ", max(gaussian))
         mean_guess = convert(np.mean(gaussian))
+        #print("Mean Guess: ", mean_guess)
         SD_guess = convert(np.std(gaussian))
+        #print("SD Guess: ", SD_guess)
         
+    if shift:
+        try:
+            x_values = np.array(x_values)
+        except:
+            pass
 
+        x_values -= shift
+
+    else:
+        shift = peak_finder(gaussian, x_values=x_values, minSD=minSD,
+                            pixelspace=pixelspace, mm_per_pixel=mm_per_pixel)
+
+        try:
+            x_values = np.array(x_values)
+        except:
+            pass
+
+        x_values -= shift
 
     
     # Get initial fit. p0 is guessed values to help the fit function
@@ -711,7 +732,7 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
         shifted_x_vals = x_vals - shift
 
         
-        if fit:
+        if fit or popt is not None:
             if popt is None or pixelspace:
                 popt = gaussian_curve_fit(gaussian, x_values=shifted_x_vals, minSD=minSD, pixelspace=pixelspace, mm_per_pixel=mm_per_pixel)
                 print("Popt from plotting function")
@@ -751,6 +772,7 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
         # Center at 0
         for i, popt in enumerate(gaussian):
             popt[1] = 0
+            #print("Popt: ", popt, '\n')
 
             gaussian_vals = gaussian_func(x_vals, popt[0], popt[1], popt[2])
 
