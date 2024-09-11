@@ -32,10 +32,12 @@ for folder in database.keys():
             distances = data['X Gaussian Distances']
             shift = data['X Gaussian Shift']
             popt = data['X Popt']
+            print(folder)
             supp2.plot_gaussian(gaussian, distances=distances,
                                 #shift=shift,
                                 fit=True,
                                 #popt=popt,
+                                #Debug=True,
                                 )
 
 sys.exit()
