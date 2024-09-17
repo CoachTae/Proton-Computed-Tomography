@@ -343,11 +343,6 @@ def gaussian_curve_fit(gaussian, x_values=None, include_errors = False,
         0 = The fit doesn't fit the data at all.
         1 = The fit perfectly describes the data.
 
-    minSD: The smallest standard deviation allowed. Any SDs below this
-        will be marked as noise and have those pixels set to 0. The default
-        value for this is in mm. Must be changed if working in pixel space.
-        The equivalent for pixel space is about 19 pixels.
-
     pixelspace: If True, x-axis will be in pixels, not mm
 
     popt: A list of fitted parameters [Amplitude, Mean, SD]
@@ -480,10 +475,11 @@ def integrate_gaussian(popt, pcov = None, include_error = False,
     
 def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
                   title = '', show = True, save = False,
+                  xlabel=None, ylabel=None,
                   file_name = '', fit = False, pixelspace = False,
                   mm_per_pixel = None, fontsize = 14, Debug=False,
                   ticksize = 12, titlesize=20, pointsize=12, multiple=False,
-                  graphs=None, xleft=None, xright=None):
+                  graphs=None, xleft=None, xright=None, ax=None):
     '''
     Creates a 2D plot of an expected gaussian.
 
@@ -521,8 +517,10 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
 
     xright: Crops the image to end at this x-value (recommended value is 10)
 
-    test: Can be given integer values to test the code up to certain points.
-        Used for troubleshooting hard-to-find bugs.
+    ax: Users generally won't use this argument. It's used when creating
+        multiple plots in 1. Provide a matplotlib ax/axs object and it will
+        plot the data/fit to that axis. Return values behave the same as
+        always with no changes.
 
     PLEASE READ:
         multiple: If True, pass in a list of popt's for the "gaussian" argument.
@@ -546,8 +544,11 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
         print("\n\n\nSTARTING PLOTTING FUNCTION\n\n")
         
     size = [pointsize] * len(gaussian) # Matplotlib takes a list of point sizes for each point
-    
-    fig, ax = plt.subplots()
+
+    if ax is None:
+        fig, ax = plt.subplots()
+    else:
+        ax = ax
 
     if not multiple:
         if distances is None:
@@ -587,6 +588,33 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
             
             gaussian_vals = gaussian_func(shifted_x_vals, popt[0], 0, popt[2])
 
+            if ax is not None:
+                ax.plot(shifted_x_vals, gaussian_vals, label='Gaussian Fit', color='blue')
+                ax.scatter(shifted_x_vals, gaussian, color='red', s=size)
+
+                if xlabel is None:
+                    ax.set_xlabel('Distance (mm)', fontsize=fontsize)
+                else:
+                    ax.set_xlabel(xlabel, fontsize=fontsize)
+
+                if ylabel is None:
+                    ax.set_ylabel('Brightness', fontsize=fontsize)
+                else:
+                    ax.set_ylabel(ylabel, fontsize=fontsize)
+                ax.legend()
+
+                # For cropping the x-axis manually
+                if xright is None and xleft is None:
+                    pass
+                elif xright is not None and xleft is None:
+                    ax.set_xlim(right=xright)
+                elif xright is None and xleft is not None:
+                    ax.set_xlim(left = xleft)
+                else:
+                    ax.set_xlim(xleft, xright)
+
+                return
+            
             # Plot data and fit
             plt.plot(shifted_x_vals, gaussian_vals, label='Gaussian Fit', color='blue')
             plt.legend()
@@ -627,11 +655,19 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
 
             
 
-    if not pixelspace:
-        ax.set_xlabel('Distance (mm)', fontsize=fontsize)
-    elif pixelspace:
-        ax.set_xlabel('Pixel Number', fontsize=fontsize)
-    ax.set_ylabel('Brightness', fontsize=fontsize)
+    if xlabel is None:
+        if not pixelspace:
+            ax.set_xlabel('Distance (mm)', fontsize=fontsize)
+        elif pixelspace:
+            ax.set_xlabel('Pixel Number', fontsize=fontsize)
+    else:
+        ax.set_xlabel(xlabel, fontsize=fontsize)
+
+    print(ylabel)
+    if ylabel is None:
+        ax.set_ylabel('Brightness', fontsize=fontsize)
+    else:
+        ax.set_ylabel(ylabel, fontsize=fontsize)
 
 
     # For cropping the x-axis manually
@@ -655,7 +691,18 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
         plt.savefig(file_name, dpi=800)
         plt.close()
         
-    
+
+def plot_gaussian_stack(gaussian_list, xleft=None, xright=None,
+                        xlabel=None, ylabel=None):
+    fig, axs = plt.subplots(len(gaussian_list), 1, figsize=(6,12))
+
+    for i, gaussian in enumerate(gaussian_list):
+        plot_gaussian(gaussian, fit=True, ax=axs[i], xleft=xleft,
+                      xright=xright, xlabel=xlabel, ylabel=ylabel)
+
+    plt.tight_layout()
+    plt.show()
+
 
 def plot_run_sums(folder_name, title='', autosubtract=True,
                   fontsize=14, ticksize=12):
@@ -818,4 +865,6 @@ def compare_with_geant_2d(gaussian, amplitude, std_dev, title='',
     ax.set_title(title)
     ax.legend()
     plt.show()
+
+    
 

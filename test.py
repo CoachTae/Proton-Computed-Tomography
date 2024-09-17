@@ -18,27 +18,25 @@ start_time = time.time()
 with open('Database.json', 'r') as file:
     database = json.load(file)
 
-image = supp2.open_bayer(const.meanmuscle)
-image = supp2.apply_median_filter(image)
-image = supp2.subtract_background(image)
-gaussian = supp2.gaussian_2d(image)
-#supp2.plot_gaussian(gaussian)
+#image = supp2.open_bayer(const.mean100)
+#image = supp2.apply_median_filter(image)
+#image = supp2.subtract_background(image)
+#gaussian = supp2.gaussian_2d(image)
+#supp2.plot_gaussian(gaussian, fit=True)
+#sys.exit()
 
-for folder in database.keys():
+gaussians = []
+for folder in const.acrylic_runs:
     for file in const.mean_runs:
         if file in database[folder].keys():
             data = database[folder][file]
             gaussian = data['X Gaussian']
-            distances = data['X Gaussian Distances']
-            shift = data['X Gaussian Shift']
-            popt = data['X Popt']
-            print(folder)
-            supp2.plot_gaussian(gaussian, distances=distances,
-                                #shift=shift,
-                                fit=True,
-                                #popt=popt,
-                                #Debug=True,
-                                )
+            gaussian = np.array(gaussian)
+            gaussian = gaussian / (const.mean_ppf[7])
+            gaussians.append(gaussian)
+
+supp2.plot_gaussian_stack(gaussians, ylabel = "Normalized Photon Yield", xleft=-20, xright=20)
+            
 
 sys.exit()
 
