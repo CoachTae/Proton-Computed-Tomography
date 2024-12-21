@@ -68,7 +68,7 @@ mean5cm = "PH00037.ARW"
 mean10cm = med10cm
 mean15cm = "PH00105.ARW"
 meanmuscle = medmuscle
-meanbone = "MB00040.ARW"
+meanbone = "MB00041.ARW"
 
 mean_runs = [mean80,
              mean100,

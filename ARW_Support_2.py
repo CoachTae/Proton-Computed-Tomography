@@ -359,16 +359,18 @@ def peak_finder(gaussian, x_values=None, pixelspace=False, mm_per_pixel=None,
         SD_guess = np.std(gaussian) / mm_per_pixel
     elif not pixelspace and x_values is None:
         x_values = get_distances(gaussian)
-        mean_guess = convert(np.mean(gaussian))
-        SD_guess = convert(np.std(gaussian))
+        mean_guess = convert(sum(i * gaussian[i] for i in range(len(gaussian))) / sum(gaussian))
+        variance = convert(sum(gaussian[i] * (i - mean_guess)**2 for i in range(len(gaussian))) / sum(gaussian))
+        SD_guess = variance**0.5
     elif pixelspace and x_values is not None:
         x_values = x_values
         mean_guess = np.mean(gaussian)
         SD_guess = np.std(gaussian) / mm_per_pixel
     else:
         x_values = x_values
-        mean_guess = convert(np.mean(gaussian))
-        SD_guess = convert(np.std(gaussian))
+        mean_guess = convert(sum(i * gaussian[i] for i in range(len(gaussian))) / sum(gaussian))
+        variance = convert(sum(gaussian[i] * (i - mean_guess)**2 for i in range(len(gaussian))) / sum(gaussian))
+        SD_guess = variance**0.5
         
 
 
@@ -404,7 +406,7 @@ def peak_finder(gaussian, x_values=None, pixelspace=False, mm_per_pixel=None,
     if pixelspace:
         return max_index # Returns peak location in pixel number
     else:
-        return x_values[max_index] # Returns peak location in mm
+        return popt[1] # Returns peak location in mm
 
 
    
@@ -478,8 +480,9 @@ def gaussian_curve_fit(gaussian, x_values=None, include_errors = False,
         SD_guess = np.std(gaussian) / mm_per_pixel
     elif not pixelspace and x_values is None:
         x_values = get_distances(gaussian)
-        mean_guess = convert(np.mean(gaussian))
-        SD_guess = convert(np.std(gaussian))
+        mean_guess = convert(sum(i * gaussian[i] for i in range(len(gaussian))) / sum(gaussian))
+        variance = convert(sum(gaussian[i] * (i - mean_guess)**2 for i in range(len(gaussian))) / sum(gaussian))
+        SD_guess = variance**0.5
     elif pixelspace and x_values is not None:
         x_values = x_values
         mean_guess = np.mean(gaussian)
@@ -487,9 +490,10 @@ def gaussian_curve_fit(gaussian, x_values=None, include_errors = False,
     else:
         x_values = x_values
         #print("Amplitude Guess: ", max(gaussian))
-        mean_guess = convert(np.mean(gaussian))
+        mean_guess = convert(sum(i * gaussian[i] for i in range(len(gaussian))) / sum(gaussian))
         #print("Mean Guess: ", mean_guess)
-        SD_guess = convert(np.std(gaussian))
+        variance = convert(sum(gaussian[i] * (i - mean_guess)**2 for i in range(len(gaussian))) / sum(gaussian))
+        SD_guess = variance**0.5
         #print("SD Guess: ", SD_guess)
         
     if shift:
@@ -645,7 +649,7 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
                   file_name = '', fit = False, pixelspace = False,
                   mm_per_pixel = None, minSD = 1, fontsize = 14,
                   ticksize = 12, titlesize=20, pointsize=12, center=True, multiple=False,
-                  graphs=None, xleft=None, xright=None):
+                  graphs=None, xleft=None, xright=None, ylabel='Brightness'):
     '''
     Creates a 2D plot of an expected gaussian.
 
@@ -786,7 +790,7 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
         ax.set_xlabel('Distance (mm)', fontsize=fontsize)
     elif pixelspace:
         ax.set_xlabel('Pixel Number', fontsize=fontsize)
-    ax.set_ylabel('Brightness', fontsize=fontsize)
+    ax.set_ylabel(ylabel, fontsize=fontsize)
 
 
     # For cropping the x-axis manually
@@ -812,7 +816,8 @@ def plot_gaussian(gaussian, distances = None, popt = None, shift = None,
         
     
 
-def plot_run_sums(folder_name, title='', autosubtract=True,
+def plot_run_sums(folder_name, title='', autosubtract=False,
+                  integration=False,
                   fontsize=14, ticksize=12):
     # Expects Images folder -> ARW Files folder -> folder_name folder
     folder_path = './Images/ARW Files/'+ folder_name + '/'
@@ -834,14 +839,14 @@ def plot_run_sums(folder_name, title='', autosubtract=True,
             image = raw.raw_image.copy()
 
         # Apply median filter
-        image = apply_median_filter(image)
-        image = subtract_background(image, autosubtract=autosubtract)
+        #image = apply_median_filter(image)
+        #image = subtract_background(image, autosubtract=autosubtract)
 
         # Increment num_files
         num_files += 1
         
         # Get the sum
-        image_sum = full_sum(image)
+        image_sum = full_sum(image, integration=integration)
 
         # Append sum to list of sums
         full_sums.append(image_sum)
@@ -850,10 +855,10 @@ def plot_run_sums(folder_name, title='', autosubtract=True,
     fig, ax = plt.subplots()
     ax.scatter(range(num_files), full_sums)
     ax.set_title(title)
-    ax.xticks(fontsize=ticksize)
-    ax.yticks(fontsize=ticksize)
+    ax.tick_params(labelsize=ticksize)
     ax.set_xlabel('"File Number"', fontsize=fontsize)
     ax.set_ylabel("Full Sum", fontsize=fontsize)
+    ax.yaxis.get_offset_text().set_fontsize(ticksize)
     plt.show()
 
 
@@ -891,7 +896,7 @@ def get_all_images(folder_name, include_names=False):
     return images
 
 
-def get_useful_images(folder_name, include_names=False):
+def get_useful_images(folder_name, include_names=False, get_cutoff=False):
     '''
     Pulls all images from a folder that meet a certain brightness (full_sum) threshold
 
@@ -922,7 +927,10 @@ def get_useful_images(folder_name, include_names=False):
 
     filtered_image_sums = [tup for tup in image_sums if tup[1] >= (lowest_avg + cutoff_line)]
 
-    return filtered_image_sums
+    if get_cutoff:
+        return cutoff_line
+    else:
+        return filtered_image_sums
 
 def compare_with_geant_2d(gaussian, amplitude, std_dev, title='',
                           mm_per_pixel = None, fontsize=14):
