@@ -136,7 +136,7 @@ def get_distances(pixels, mm_per_pixel=None): # Units are in mm
 
 def plot_3d(image, title='', figsize = (10,7), pixelspace = False,
             axisfontsize = 14, titlefontsize = 18, ticksize = 12,
-            labelpad = 10):
+            labelpad = 10, xstart=None, xend=None, ystart=None, yend=None):
     '''
     Creates a 3D plot of the provided image.
 
@@ -198,6 +198,17 @@ def plot_3d(image, title='', figsize = (10,7), pixelspace = False,
     ax.tick_params(axis='x', labelsize=ticksize)
     ax.tick_params(axis='y', labelsize=ticksize)
     ax.tick_params(axis='z', labelsize=ticksize)
+
+    # Set x and y windows (limits)
+    # If user only gives a starting window
+    if xstart is not None:
+        ax.set_xlim(left=xstart)
+    if xend is not None:
+        ax.set_xlim(right=xend)
+    if ystart is not None:
+        ax.set_ylim(bottom=ystart)
+    if yend is not None:
+        ax.set_ylim(top=yend)
 
     plt.show()
 
