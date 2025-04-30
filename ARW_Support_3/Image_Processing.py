@@ -2,6 +2,7 @@ import os
 import rawpy
 import numpy as np
 import sys
+from scipy.ndimage import median_filter
 
 def open_bayer(file: str) -> np.ndarray:
     '''
@@ -75,3 +76,36 @@ def subtract_background(image, subtract=575, autosubtract=False):
         # Set lower bound of 0. Anything below 0 gets set to 0
         image = np.clip(image, 0, None)
         return image
+
+
+
+
+
+
+def find_center(Image) -> tuple[float, float]:
+    '''
+    Intended to find the center of the Gaussian beam in the current representation
+    space.
+
+    Parameters:
+        Image: Image object as defined in Image_Class.py
+
+    Returns:
+        x_center, y_center
+    '''
+
+    # Make sure we have a space to operate in
+    if Image.X is None or Image.Y is None:
+        Image.get_spatial_map()
+
+    image = Image.image.astype(np.float64)
+    X = Image.X.astype(np.float64)
+    Y = Image.Y.astype(np.float64)
+
+    total = np.sum(image)
+    x_center = np.sum(image * X) / total
+    y_center = np.sum(image * Y) / total
+
+    return x_center, y_center
+    
+
