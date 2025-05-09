@@ -15,6 +15,8 @@ class Image:
         self.is_pixelspace = True
         self.X = None
         self.Y = None
+        self.X_Shift = 0
+        self.Y_Shift = 0
 
         if process:
             # We can choose to automatically filter and subtract background
@@ -31,15 +33,47 @@ class Image:
         parameters. If pixelspace is True, distances will be in pixel. If False,
         distances will be in mm.
         '''
-        self.is_pixelspace = False
-        self.get_spatial_map()
-        print("Pixelspace has been turned off.")
+        if self.is_pixelspace:
+            self.is_pixelspace = False
+
+            # If the map isn't complete or doesn't exist, create it.
+            if self.X is None or self.Y is None:            
+                self.get_spatial_map()
+                print("Spatial map created in distance space.")
+            # Otherwise, just shift the current map and shifts to distance space.
+            else:
+                # Change data type from int array to float array
+                self.X = self.X.astype(np.float64)
+                self.Y = self.Y.astype(np.float64)
+
+                self.X *= self.mm_per_pixel
+                self.Y *= self.mm_per_pixel
+                self.X_Shift *= self.mm_per_pixel
+                self.Y_Shift *= self.mm_per_pixel
+                print("Spatial map converted into distance space.")
+        else:
+            print("You are already in distance space.")
+            print("No changes have been made.")
 
 
     def pixelspace_on(self):
-        self.is_pixelspace = True
-        self.get_spatial_map()
-        print("Pixelspace has been turned on.")
+        if self.is_pixelspace:
+            print("You are already in pixelspace.")
+            print("No changes have been made.")
+        else:
+            self.is_pixelspace = True
+
+            # If the map isn't complete or doesn't exist, create it.
+            if self.X is None or self.Y is None:
+                self.get_spatial_map()
+                print("Spatial map created in pixelspace.")
+            # Otherwise, undo the distance conversion
+            else:
+                self.X /= self.mm_per_pixel
+                self.Y /= self.mm_per_pixel
+                self.X_Shift /= self.mm_per_pixel
+                self.Y_Shift /= self.mm_per_pixel
+                print("Spatial map converted into pixelspace.")
 
 
 
@@ -94,10 +128,20 @@ class Image:
             self.get_spatial_map()
         
         if direction.lower() == 'x':
-            self.X += amount
+            if self.is_pixelspace:
+                self.X += int(amount)
+                self.X_Shift += int(amount)
+            else:
+                self.X += amount
+                self.X_Shift += amount
 
         elif direction.lower() == 'y':
-            self.Y += amount
+            if self.is_pixelspace:
+                self.Y += int(amount)
+                self.X_Shift += int(amount)
+            else:
+                self.Y += amount
+                self.Y_Shift += amount
 
         else:
             print("Not a valid direction.")
@@ -169,20 +213,37 @@ class Image:
     def crop_image(self, xstart, xend, ystart, yend):
         '''
         Crops the image and spatial maps (X and Y) to a specified rectangular region.
+        Units of parameters should be consistent with whatever spatial units you're using (mm or pixels)
 
         Parameters:
-            xstart, xend: Horizontal (column) pixel limits
-            ystart, yend: Vertical (row) pixel limits
+            xstart, xend: Horizontal (column) pixel/mm limits
+            ystart, yend: Vertical (row) pixel/mm limits
 
         This method modifies the current image in-place.
         '''
 
-        self.image = self.image[ystart:yend, xstart:xend]
+        if self.X is None or self.Y is None:
+            self.get_spatial_map()
+
+        # Find closest indices corresponding to the provided value
+        x_axis = self.X[0] # Take one row
+        y_axis = self.Y[:,0] # Take on column
+
+        # Find index closest to each spatial bound
+        xstart_idx = np.argmin(np.abs(x_axis - xstart))
+        xend_idx = np.argmin(np.abs(x_axis - xend)) + 1 # +1 to be inclusive
+
+        ystart_idx = np.argmin(np.abs(y_axis - ystart))
+        yend_idx = np.argmin(np.abs(y_axis - yend)) + 1
+
+
+        # Apply crop
+        self.image = self.image[ystart_idx:yend_idx, xstart_idx:xend_idx]
 
         # Also crop the spatial maps if they exist
         if self.X is not None and self.Y is not None:
-            self.X = self.X[ystart:yend, xstart:xend]
-            self.Y = self.Y[ystart:yend, xstart:xend]
+            self.X = self.X[ystart_idx:yend_idx, xstart_idx:xend_idx]
+            self.Y = self.Y[ystart_idx:yend_idx, xstart_idx:xend_idx]
 
 
 

@@ -25,10 +25,12 @@ for folder in database.keys():
         Image = img(file, process=True)
         x_cen, y_cen = Image.find_center()
         print(f'{folder} -> {file}:')
-        print(x_cen)
-        print(y_cen)
-        #Image.crop_image(int(x_cen-450), int(x_cen+450), int(y_cen-450), int(y_cen+450))
-        #Image.plot_3d()
+        Image.shift_spatial_map("X", -x_cen)
+        Image.shift_spatial_map("Y", -y_cen)
+        Image.pixelspace_off()
+        #Image.pixelspace_on()
+        Image.crop_image(int(-20), int(20), int(-20), int(20))
+        Image.plot_3d()
 sys.exit()
 
 
