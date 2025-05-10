@@ -6,6 +6,7 @@ import glob
 import rawpy
 import time
 import ARW_Support_2 as supp2
+from ARW_Support_3.Image_Class import Image as img
 import json
 import Constants as const
 import math
