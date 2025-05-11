@@ -1,6 +1,7 @@
 import numpy as np
 from . import Image_Processing as IP
 from . import Plotting as Plot
+from . import Gaussian_Analysis as GA
 
 class Image:
     def __init__(self,
@@ -17,6 +18,8 @@ class Image:
         self.Y = None
         self.X_Shift = 0
         self.Y_Shift = 0
+        self.x_Gaussian = 0
+        self.y_Gaussian = 0
 
         if process:
             # We can choose to automatically filter and subtract background
@@ -203,14 +206,14 @@ class Image:
             Returns: x_center, y_center
         '''
 
-        x_center, y_center = IP.find_center(self)
+        x_center, y_center = GA.find_center(self)
 
         return x_center, y_center
         
 
 
 
-    def crop_image(self, xstart, xend, ystart, yend):
+    def crop_image(self, xstart=None, xend=None, ystart=None, yend=None):
         '''
         Crops the image and spatial maps (X and Y) to a specified rectangular region.
         Units of parameters should be consistent with whatever spatial units you're using (mm or pixels)
@@ -222,31 +225,30 @@ class Image:
         This method modifies the current image in-place.
         '''
 
-        if self.X is None or self.Y is None:
-            self.get_spatial_map()
-
-        # Find closest indices corresponding to the provided value
-        x_axis = self.X[0] # Take one row
-        y_axis = self.Y[:,0] # Take on column
-
-        # Find index closest to each spatial bound
-        xstart_idx = np.argmin(np.abs(x_axis - xstart))
-        xend_idx = np.argmin(np.abs(x_axis - xend)) + 1 # +1 to be inclusive
-
-        ystart_idx = np.argmin(np.abs(y_axis - ystart))
-        yend_idx = np.argmin(np.abs(y_axis - yend)) + 1
-
-
-        # Apply crop
-        self.image = self.image[ystart_idx:yend_idx, xstart_idx:xend_idx]
-
-        # Also crop the spatial maps if they exist
-        if self.X is not None and self.Y is not None:
-            self.X = self.X[ystart_idx:yend_idx, xstart_idx:xend_idx]
-            self.Y = self.Y[ystart_idx:yend_idx, xstart_idx:xend_idx]
+        IP.crop_image(self, xstart, xend, ystart, yend)
 
 
 
-    def plot_3d(self):
+    def plot_3d(self, title='',
+                figsize=(10,7),
+                axisfontsize=14,
+                titlefontsize=18,
+                ticksize=12,
+                labelpad=10, # Spacing between axis labels/title and graph
+                xstart=None,
+                xend=None,
+                ystart=None,
+                yend=None):
         Plot.plot_3d(self)
 
+
+    def gaussian_2d(self, axis='x'):
+        if axis.lower() == 'x':
+            self.x_Gaussian = GA.gaussian_2d(self.image, axis=0)
+            print("X Gaussian created.")
+        elif axis.lower() == 'y':
+            self.y_Gaussian = GA.gaussian_2d(self.image, axis=1)
+            print("Y Gaussian created.")
+        else:
+            print("Invalid input in gaussian_2d call. No 2D Gaussians were made.")
+    
