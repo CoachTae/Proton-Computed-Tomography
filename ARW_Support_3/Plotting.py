@@ -63,83 +63,178 @@ def plot_3d(Image, title='',
         Image.crop_image(xstart, xend, ystart, yend)
 
     plt.show()
+    
+def plot_2d(Image):
+    '''
+    Image should be a Image object
+
+    Prints a picture of the image
+    '''
+    image = Image.image
+    plt.imshow(image)
+    plt.axis('off')
+    plt.show()
+
+def gaussian_func(x, amplitude, mean, std_dev) -> float:
+    '''
+    Evaluates value of a Gaussian at x given its parameters.
+
+    Parameters:
+        x: Location to evaluate Gaussian (int, float, or np array)
+        amplitude: Amplitude of Gaussian
+        mean: Mean of Gaussian
+        std_dev: Standard deviation of Gaussian
+
+    returns:
+        Value of Gaussian at x (float)
+    '''
+    return amplitude * np.exp(-((x - mean) / std_dev)**2 / 2)
 
 
 
 def plot_gaussian(Image,
-                  axis='x' -> str, # Which axis will be plotted
-                  title='' -> str,
-                  show='True' -> bool, # Whether to display plot or not
-                  save='False' -> bool, # Whether to save plot or not
-                  file_name='' -> str, # If saving, what the file name will be
-                  fit='False' -> bool, # Whether or not to curve fit
-                  pixelspace=None -> bool,
-                  fontsize=14 -> float,
-                  ticksize=12 -> float,
-                  titlesize=20 -> float,
-                  pointsize=12 -> float,
-                  center=True -> bool, # Center Gaussian at 0?
-                  xleft=None -> float, # Crop left side of plot
-                  xright=None -> float, # Crop right side of plot
-                  ylabel='Brightness' -> str):
+                  axis=0,
+                  fit = False,
+                  include_errors=False,
+                  pcov_list=True, 
+                  corr=False, 
+                  minSD=1,
+                  fontsize = 14, ticksize = 12, titlesize=20, pointsize=12, 
+                  ylabel='Brightness',
+                  shift=None,
+                  pixelspace = True,
+                  center = True,
+                  xleft=None, xright=None,
+                  title = None,
+                  show = False,
+                  save = False,
+                  file_name = ''):
     '''
-    Creates 2D plot of your Gaussian.
+    Plots 2D gaussian fit for the specified axis.  
+    
+    Parameters
+    ----------
+    axis : str
+        0 or 1 — which Gaussian profile to fit. 0 is 'x' and 1 is 'y'
+    fit: bool 
+        Graphs a best-fit gaussian curve over the data if True
+    include_errors : bool
+        If True, returns covariance information.
+    pcov_list : bool
+        If True, return sqrt(diagonal) of covariance matrix (1σ errors).
+    corr : bool
+        If True, compute R² correlation coefficient.
+    minSD : float
+        Minimum allowed standard deviation.
+    fontsize, ticksize, titlesize, pointsize : int (s)
+        Plot elements
+    ylabel : str
+        Plot element
+    center: bool
+        Decides whether or not to attempt centering the gaussian at 0.
+    xleft : int
+        Crops the image to start at this x-value (recommended value is -10)
+    xright : int 
+        Crops the image to end at this x-value (recommended value is 10)
+    shift  : float
+        Optional manual shift of x-values before fitting.
+    pixelspace: bool
+        Option of if the plot will be in pixels or in mm. Defaults to pixels.
+    show : bool
+        Option to show plot
+    save : bool
+        Option to save plot. Defaults to False 
+    file_name : str 
+        Name for the file to be saved under. Only relevant if save = True
+    Returns
+    -------
+    None.
 
-    Parameters:
-        Image: Image object defined in ARW3 package.
-        title: Title displayed above graph
-        show: If set False, it will not show the graph on screen (used for saving en-mass)
-        save: If True, Python will automatically save the image once it's created.
-        file_name: Name of file (only used if saving)
-        fit: If True, it will curve fit a Gaussian to the data
-        pixelspace: Allows user to specify pixelspace (True) or distance space (False)
-        fontsize: Font of x and y labels
-        ticksize: Font size of numbers on the axes
-        titlesize: Font size of title
-        center: If False, Gaussian is plotted as is without self-centering.
-        xleft: Cuts graph from -inf to this value
-        xright: Cuts graph from this value to +inf
-        ylabel: Changes label on y-axis
-
-    returns:
-        Nothing. Just plots
     '''
-
-    # Assign gaussian variable to either the x or y Gaussians
-    if axis.lower() == 'x':
-        if Image.x_Gaussian is None:
-            Image.gaussian_2d(axis=axis)
-        gaussian = Image.x_Gaussian
-        distances = Image.X[0,:]
-    elif axis.lower() == 'y':
-        if Image.y_Gaussian is None:
-            Image.gaussian_2d(axis=axis)
-        gaussian = Image.y_Gaussian
-        distances = Image.Y[:,0]
+    
+    # Check which axis we are plotting
+    if axis == 0:
+        fitted = Image.x_fit_params
+    elif axis ==1:
+        fitted = Image.y_fit_params
     else:
-        print("\n\n\nERROR IN PLOTTING GAUSSIAN.")
-        print(f"Parameter 'axis' was given a value of {axis} when 'x' or 'y' was expected.")
-        print("Continuing with plot using x-axis.\n\n\n")
-        axis = 'x'
-        gaussian = Image.x_Gaussian
-        distances = Image.X[0,:]
+        print('Invalid axis entry')
+        return
+    
+    # Ensure that we have gaussian fit paramaters to plot for the given axis
+    if fitted is None:
+        Image.gaussian_curve_fit(axis=axis,include_errors=include_errors,
+                                 pcov_list=pcov_list, corr=corr, minSD=minSD,
+                                 shift=shift)
+    else: 
+        pass
+    
+    # check pixelspace:
+    if pixelspace:
+        Image.pixelspace_on()
+    else:
+        Image.pixelspace_off()
 
+    if axis == 0:
+        fitted = Image.x_fit_params.copy()
+    else:
+        fitted = Image.y_fit_params.copy()
+        
+    # Selecting axes and shift paramaters
+    if axis == 0:
+        vertical = Image.x_Gaussian
+        horizontal = Image.X[0]
+    elif axis ==1:
+        vertical = Image.y_Gaussian
+        horizontal = Image.Y[:,0]
 
-    # Matplotlib takes a list of point sizes for each point in the graph
-    size = [pointsize] * len(gaussian)
+    
+    # Centering the plot at 0 using mean location calculated in gaussian_curve_fit()
+    if center:
+        horizontal = horizontal.astype(np.float64)
+        horizontal -= fitted[1]
+        fitted[1] = 0
+        
+    print(fitted)
 
+    # Matplotlib takes a list of point sizes for each point
+    size = [pointsize] * len(vertical)
+    
+    # Initalizing plot
     fig, ax = plt.subplots()
 
-
-    # Center if needed
-    if center:
-        x_cen, y_cen = Image.find_center()
-
-        if axis.lower() == 'x':
-            distances -= x_cen
-        else:
-            distances -= y_cen
-
-
+    # Plot data and fit
     if fit:
-        
+        gaussian_vals = gaussian_func(horizontal, fitted[0] , fitted[1], fitted[2])
+        plt.plot(horizontal, gaussian_vals, label='Gaussian Fit', color='blue')
+        plt.legend()
+    plt.scatter(horizontal, vertical, color='red', s=size)    
+    
+    # Handling the x axis in terms of pixles or mm
+    if not pixelspace:
+        ax.set_xlabel('Distance (mm)', fontsize=fontsize)
+    elif pixelspace:
+        ax.set_xlabel('Pixel Number', fontsize=fontsize)
+    ax.set_ylabel(ylabel, fontsize=fontsize)
+    
+    # For cropping the x-axis manually
+    if xright is None and xleft is None:
+        pass
+    elif xright is not None and xleft is None:
+        ax.set_xlim(right=xright)
+    elif xright is None and xleft is not None:
+        ax.set_xlim(left = xleft)
+    else:
+        ax.set_xlim(xleft, xright)
+    # Plot elements
+    plt.xticks(fontsize=ticksize)
+    plt.yticks(fontsize=ticksize)
+    ax.set_title(title, fontsize=titlesize)
+    
+    if show:
+        plt.show()
+
+    if save:
+        plt.savefig(file_name, dpi=800)
+        plt.close()
+    
