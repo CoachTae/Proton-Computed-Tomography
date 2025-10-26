@@ -8,8 +8,8 @@ from scipy.optimize import curve_fit
 def find_center(Image) -> tuple[float, float]:
     '''
     Intended to find the center of the Gaussian beam in the current representation
-    space.
-
+    space.This method is intended as a rough estimate of the center. 
+    For more accurate center, use paramaters found from gaussian_curve_fit()
     Parameters:
         Image: Image object as defined in Image_Class.py
 

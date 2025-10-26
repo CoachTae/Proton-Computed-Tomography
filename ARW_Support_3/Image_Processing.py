@@ -123,36 +123,3 @@ def crop_image(Image, xstart, xend, ystart, yend):
         Image.Y = Image.Y[ystart_idx:yend_idx, xstart_idx:xend_idx]
 
 
-def get_all_images(folder_name, include_names=False):
-    '''
-    Creates a list of all 2D image arrays for every ARW file in a given folder
-
-    include_names: Decides whether or not to include the image name (str) in the results
-
-    return: List of 2D image arrays if include_names == False
-            List of (name, image) if include_names == True
-    '''
-    # Expects Images folder -> ARW Files folder -> folder_name folder
-    folder_path = './Images/ARW Files/'+ folder_name + '/'
-
-    # This says that we'll choose all ARW files
-    pattern = '*.ARW'
-
-    # This will store the array for each file
-    images = []
-
-    print(folder_path)
-    # For each ARW file in folder...
-    for file_path in glob.glob(folder_path + pattern):
-        # Open the raw data
-        with rawpy.imread(file_path) as raw:
-            image = raw.raw_image.copy()
-
-        if not include_names:
-            images.append(image)
-
-        elif include_names:
-            images.append([file_path[-11:], image])
-    
-    return images
-
