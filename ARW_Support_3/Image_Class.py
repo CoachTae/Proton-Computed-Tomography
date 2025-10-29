@@ -5,8 +5,8 @@ from . import Plotting as Plot
 class Image:
     def __init__(self,
                  filename: str,
-                 process: bool =False,
-                 mm_per_pixel = 0.05487):
+                 process: bool = False,
+                 mm_per_pixel: float = 0.05487):
         self.filename = filename
         self.image = IP.open_bayer(self.filename)
         self.median_filter_applied = False
@@ -78,7 +78,7 @@ class Image:
 
 
     def full_sum(self) -> int:
-        return np.sum(Image.image)
+        return np.sum(self.image)
 
 
 
@@ -155,10 +155,14 @@ class Image:
         WARNING!!! Median filter is not perfect. Some images may have surviving noise
             whose pixel yield is greater than that of our Gaussian's peak.
         '''
-        self.image = IP.apply_median_filter(self.image)
+        if not self.median_filter_applied:
+            self.image = IP.apply_median_filter(self.image)
 
-        # Take note that a filter has been applied
-        self.median_filter_applied = True
+            # Take note that a filter has been applied
+            self.median_filter_applied = True
+        else:
+            print("Median filter is already applied.")
+            print("Skipping median filter application call.")
 
         
 
@@ -193,7 +197,7 @@ class Image:
             self.background_subtracted = delta_peak
 
         else:
-            self.background_subtracted = subtract
+            self.background_subtracted -= subtract
 
 
 
@@ -227,7 +231,7 @@ class Image:
 
         # Find closest indices corresponding to the provided value
         x_axis = self.X[0] # Take one row
-        y_axis = self.Y[:,0] # Take on column
+        y_axis = self.Y[:,0] # Take one column
 
         # Find index closest to each spatial bound
         xstart_idx = np.argmin(np.abs(x_axis - xstart))
