@@ -94,15 +94,10 @@ def gaussian_func(x, amplitude, mean, std_dev) -> float:
 
 def plot_gaussian(Image,
                   axis=0,
-                  fit = False,
-                  include_errors=False,
-                  pcov_list=True, 
-                  corr=False, 
-                  minSD=1,
+                  fit = False, 
                   fontsize = 14, ticksize = 12, titlesize=20, pointsize=12, 
                   ylabel='Brightness',
                   shift=None,
-                  pixelspace = True,
                   center = True,
                   xleft=None, xright=None,
                   title = None,
@@ -151,43 +146,31 @@ def plot_gaussian(Image,
     None.
 
     '''
-    
     # Check which axis we are plotting
-    if axis == 0:
-        fitted = Image.x_fit_params
-    elif axis ==1:
-        fitted = Image.y_fit_params
-    else:
+    if axis not in [0, 1]:
         print('Invalid axis entry')
         return
     
-    # Ensure that we have gaussian fit paramaters to plot for the given axis
-    if fitted is None:
-        Image.gaussian_curve_fit(axis=axis,include_errors=include_errors,
-                                 pcov_list=pcov_list, corr=corr, minSD=minSD,
-                                 shift=shift)
-    else: 
-        pass
-    
-    # check pixelspace:
-    if pixelspace:
-        Image.pixelspace_on()
-    else:
-        Image.pixelspace_off()
-
-    if axis == 0:
-        fitted = Image.x_fit_params.copy()
-    else:
-        fitted = Image.y_fit_params.copy()
-        
-    # Selecting axes and shift paramaters
-    if axis == 0:
+    if axis==0:
+        # Checking if x_Gaussian is populated
+        if Image.x_Gaussian == 0: 
+            Image.gaussian_2d(axis = 0)
+        # If fit, then checking if the fit params have been calculated
+        if fit and Image.x_fit_params is None:
+            Image.gaussian_curve_fit(axis=axis)
+        fitted = Image.x_fit_params
         vertical = Image.x_Gaussian
-        horizontal = Image.X[0]
-    elif axis ==1:
+        horizontal = Image.X[0,:]
+    else:
+        # Checking if y_Gaussian is populated
+        if Image.y_Gaussian == 0: 
+            Image.gaussian_2d(axis = 0)
+        # If fit, then checking if the fit params have been calculated
+        if fit and Image.y_fit_params is None:
+            Image.gaussian_curve_fit(axis=axis)
+        fitted = Image.y_fit_params
         vertical = Image.y_Gaussian
         horizontal = Image.Y[:,0]
-
     
     # Centering the plot at 0 using mean location calculated in gaussian_curve_fit()
     if center:
@@ -195,14 +178,13 @@ def plot_gaussian(Image,
         horizontal -= fitted[1]
         fitted[1] = 0
         
-    print(fitted)
 
     # Matplotlib takes a list of point sizes for each point
-    size = [pointsize] * len(vertical)
+    size = pointsize
     
     # Initalizing plot
     fig, ax = plt.subplots()
-
+    
     # Plot data and fit
     if fit:
         gaussian_vals = gaussian_func(horizontal, fitted[0] , fitted[1], fitted[2])
@@ -211,9 +193,9 @@ def plot_gaussian(Image,
     plt.scatter(horizontal, vertical, color='red', s=size)    
     
     # Handling the x axis in terms of pixles or mm
-    if not pixelspace:
+    if not Image.is_pixelspace:
         ax.set_xlabel('Distance (mm)', fontsize=fontsize)
-    elif pixelspace:
+    else:
         ax.set_xlabel('Pixel Number', fontsize=fontsize)
     ax.set_ylabel(ylabel, fontsize=fontsize)
     

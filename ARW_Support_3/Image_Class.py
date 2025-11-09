@@ -94,7 +94,7 @@ class Image:
 
 
     def full_sum(self) -> int:
-        return np.sum(Image.image)
+        return np.sum(self.image)
 
 
 
@@ -147,18 +147,25 @@ class Image:
             if self.is_pixelspace:
                 self.X += int(amount)
                 self.X_Shift += int(amount)
+                if self.x_fit_params is not None:
+                    self.x_fit_params[1] += int(amount)                    
             else:
                 self.X += amount
                 self.X_Shift += amount
+                if self.x_fit_params is not None:
+                    self.x_fit_params[1] += amount
 
         elif direction.lower() == 'y':
             if self.is_pixelspace:
                 self.Y += int(amount)
                 self.X_Shift += int(amount)
+                if self.y_fit_params is not None:
+                    self.y_fit_params[1] += int(amount)
             else:
                 self.Y += amount
                 self.Y_Shift += amount
-
+                if self.y_fit_params is not None:
+                    self.y_fit_params[1] += amount
         else:
             print("Not a valid direction.")
         
@@ -171,10 +178,14 @@ class Image:
         WARNING!!! Median filter is not perfect. Some images may have surviving noise
             whose pixel yield is greater than that of our Gaussian's peak.
         '''
-        self.image = IP.apply_median_filter(self.image)
+        if not self.median_filter_applied:
+            self.image = IP.apply_median_filter(self.image)
 
-        # Take note that a filter has been applied
-        self.median_filter_applied = True
+            # Take note that a filter has been applied
+            self.median_filter_applied = True
+        else:
+            print("Median filter is already applied.")
+            print("Skipping median filter application call.")
 
         
 
@@ -209,7 +220,7 @@ class Image:
             self.background_subtracted = delta_peak
 
         else:
-            self.background_subtracted = subtract
+            self.background_subtracted -= subtract
 
 
 
@@ -269,47 +280,30 @@ class Image:
         return sideimg
 
 
-    def gaussian_curve_fit(self,
-                           axis= 0 ,
-                           include_errors=False,
-                           pcov_list=True, 
-                           corr=False, 
-                           minSD=1, 
-                           shift=None):
-        return GA.gaussian_curve_fit(self, 
-                                     axis=axis, 
-                                     include_errors=include_errors,
-                                     pcov_list=pcov_list, 
-                                     corr=corr, 
-                                     minSD=minSD,
-                                     shift=shift)
+    def gaussian_curve_fit(self, axis= 0):
+        return GA.gaussian_curve_fit(self, axis=axis)
+    
     def plot_gaussian(self,
                       axis=0,
                       fit = False,
-                      include_errors=False,
-                      pcov_list=True, 
-                      corr=False, 
-                      minSD=1,
                       fontsize = 14, ticksize = 12, titlesize=20, pointsize=12, 
                       ylabel='Brightness',
                       shift=None,
-                      pixelspace = True,
                       center = True,
                       xleft=None, xright=None,
                       title = None,
                       show = False,
                       save = False,
                       file_name = ''):
-        return Plot.plot_gaussian(self, axis=axis, fit = fit, include_errors=include_errors,
-                          pcov_list=pcov_list, corr=corr, minSD=minSD,fontsize = fontsize,
+        return Plot.plot_gaussian(self, axis=axis, fit = fit, fontsize = fontsize,
                           ticksize = ticksize, titlesize=titlesize, pointsize=pointsize,
-                          ylabel=ylabel, shift=shift, pixelspace = pixelspace,
-                          center = center, xleft=xleft, xright=xright, title = title,
-                          show = show, save = save, file_name = file_name)
+                          ylabel=ylabel, shift=shift, center = center, xleft=xleft, 
+                          xright=xright, title = title,show = show, save = save, 
+                          file_name = file_name)
         
         
-        
-        
+    def integrate_gaussian(self, axis = 0, start_limit = None, end_limit = None):
+        return GA.integrate_gaussian(self, axis=axis, start_limit=start_limit, end_limit=end_limit)
         
         
         

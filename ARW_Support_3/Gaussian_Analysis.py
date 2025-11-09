@@ -53,15 +53,11 @@ def weighted_variance(x, y, mu):
     return np.sqrt(np.sum(y * (x - mu)**2) / np.sum(y))
 
 def estimate_amplitude(x, y, mu, sigma):
-    # Find a local window around the mean, e.g., ±3 standard deviations
-    window_size = 3 * sigma
-    mask = (x >= (mu - window_size)) & (x <= (mu + window_size))
-    # Local window in x and y
-    x_window = x[mask]
-    y_window = y[x_window[0]:x_window[-1]]
     
-    # Estimate amplitude as the maximum value in the window
-    A_estimate = np.max(y_window)
+    # Convert the mean to an int
+    mean = int(mu)
+    # Estimate amplitude as the value of y at the mean
+    A_estimate = x[mean]
     
     return A_estimate
 
@@ -94,32 +90,15 @@ def gaussian_2d(Image, axis=0):
             data.append(float(max_brightness))  # Convert to float for consistency
         return data
 
-def gaussian_curve_fit(Image,
-                       axis=0,
-                       include_errors=False,
-                       pcov_list=True, 
-                       corr=False, 
-                       minSD=1,
-                       shift=None):
+def gaussian_curve_fit(Image, axis=0):
     '''
     Fits a 1D Gaussian to the side-profile of the image along the specified axis.
 
     Parameters
     ----------
+    Image: image object
     axis : str
         'x' or 'y' — which Gaussian profile to fit.
-    include_errors : bool
-        If True, returns covariance information.
-    pcov_list : bool
-        If True, return sqrt(diagonal) of covariance matrix (1σ errors).
-    corr : bool
-        If True, compute R² correlation coefficient.
-    minSD : float
-        Minimum allowed standard deviation.
-    pixelspace : bool
-        Override for using pixel or mm space.
-    shift : float
-        Optional manual shift of x-values before fitting.
     Returns
     -------
     popt : list
@@ -129,16 +108,17 @@ def gaussian_curve_fit(Image,
     R2 : float (optional)
         Coefficient of determination (goodness of fit).
     '''
-    # Ensure we are in pixel space   
-    if not Image.is_pixelspace:
-        Image.pixelspace_on()
-    
+
     # Select which axis to analyze; x=0 y=1
     
     if axis == 0:
+        if Image.x_Gaussian == 0: 
+            Image.gaussian_2d(axis = 0)
         vertical = Image.x_Gaussian
-        horizontal = Image.X[0]
+        horizontal = Image.X[0,:]
     elif axis == 1:
+        if Image.y_Gaussian == 0: 
+            Image.gaussian_2d(axis = 1)
         vertical = Image.y_Gaussian 
         horizontal = Image.Y[:,0]
     else:
@@ -147,49 +127,29 @@ def gaussian_curve_fit(Image,
     
     # Obtain initial guesses for fit
     
-    mu = weighted_mean(np.arange(len(vertical)), vertical)
+    mu = weighted_mean(horizontal, vertical)
     
-    sigma = weighted_variance(np.arange(len(vertical)), vertical, mu)
+    sigma = weighted_variance(horizontal, vertical, mu)
 
-    amp = estimate_amplitude(np.arange(len(vertical)), vertical, mu, sigma)
-
+    amp = estimate_amplitude(horizontal, vertical, mu, sigma)
     
-    # Handle x-axis shifting
-    '''
-    if shift is not None:
-        horizontal -= shift
-    else:
-        x_cen, y_cen = Image.find_center()
-        shift = x_cen if axis == 0 else y_cen
-        horizontal -= shift
-    '''
-    
-    # Fit curve
+    # Fit curve:
     popt, pcov = curve_fit(
         gaussian_func, horizontal, vertical,
-        p0=[amp, mu, max(sigma, minSD)]
+        p0=[amp, mu, sigma] , bounds=([0,0,0],[np.inf, np.inf, np.inf])
     )
 
-    # Ensure SD positive and re-center mean
-    '''
-    popt[2] = abs(popt[2])
-    popt[1] = 0.0
-    '''
     # Compute fitted Gaussian
     fitted = gaussian_func(horizontal, *popt)
 
-    # Optionally compute correlation coefficient
-    R2 = None
-    if corr:
-        SSR = np.sum((fitted - vertical) ** 2)
-        SST = np.sum((vertical - np.mean(vertical)) ** 2)
-        R2 = 1 - SSR / SST
+    # Compute correlation coefficient
+
+    SSR = np.sum((fitted - vertical) ** 2)
+    SST = np.sum((vertical - np.mean(vertical)) ** 2)
+    R2 = 1 - SSR / SST
 
     # Handle covariance output
-    if include_errors:
-        pcov_out = np.sqrt(np.diag(pcov)) if pcov_list else pcov
-    else:
-        pcov_out = None
+    pcov_out = np.sqrt(np.diag(pcov))
 
     # Store results dynamically in Image object
     if axis == 0:
@@ -201,19 +161,76 @@ def gaussian_curve_fit(Image,
         Image.y_fit_cov = pcov_out
         Image.y_fit_R2 = R2
 
-
-    # Return requested outputs
-    if include_errors and corr:
-        return popt, pcov_out, R2
-    elif include_errors:
-        return popt, pcov_out
-    elif corr:
-        return popt, R2
-    else:
-        return popt
-        
+    
+    
     
 
+def integrate_gaussian(Image, axis = 0, start_limit = None, end_limit = None):
+    '''
+    Provides analytical solution to the integral of a gaussian.
+
+    popt: List of gaussian parameters [Amplitude, Mean, SD]
+
+    pcov: List of gaussian parameter 1sigma errors [Amplitude, Mean, SD]
+
+    limits: Limits of integration (they default to all space in what space you are in)
+    '''
+    
+    if axis == 0:
+        popt = Image.x_fit_params
+        pcov = Image.x_fit_cov
+    elif axis == 1:
+        popt = Image.y_fit_params
+        pcov = Image.y_fit_cov
+    else:
+        print("invalid axis input")
+        return 
+
+    # Extract values from popt
+    Amplitude = popt[0]
+    Mean = popt[1]
+    SD = popt[2]
+
+    # If pcov is given, assign the values
+    Amplitude_error = pcov[0]
+    Mean_error = pcov[1]
+    SD_error = pcov[2]
+
+    # ----- Integration section -----
+    if start_limit is None and end_limit is None:
+        # Full-space Gaussian integral
+        Area = Amplitude * np.sqrt(2 * np.pi) * SD
+    else:
+        # Bounded integral (analytical using erf)
+        from math import erf, sqrt, pi
+
+        if start_limit is None:
+            start_limit = -np.inf
+        if end_limit is None:
+            end_limit = np.inf
+
+        def erf_term(x):
+            return erf((x - Mean) / (np.sqrt(2) * SD))
+
+        Area = Amplitude * np.sqrt(np.pi / 2) * SD * (erf_term(end_limit) - erf_term(start_limit))
+    # --------------------------------
+
+    # d(Area) = sqrt(2pi * (sigma^2(dA)^2 + A^2(dsigma)^2))
+    first_term = SD**2 * Amplitude_error**2
+    second_term = Amplitude**2 * SD_error**2
+
+    Area_error = np.sqrt(2*np.pi * (first_term + second_term))
+    
+    if axis == 0:
+        Image.x_Area= Area
+        Image.x_Area_error = Area_error
+    else:
+        Image.y_Area= Area
+        Image.y_Area_error = Area_error
+    
+    return Area, Area_error
+
+    
     
     
     
