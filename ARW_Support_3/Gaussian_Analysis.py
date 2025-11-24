@@ -101,12 +101,7 @@ def gaussian_curve_fit(Image, axis=0):
         'x' or 'y' — which Gaussian profile to fit.
     Returns
     -------
-    popt : list
-        [Amplitude, Mean, SD]
-    pcov : array or list (optional)
-        Covariance or 1σ errors of parameters.
-    R2 : float (optional)
-        Coefficient of determination (goodness of fit).
+    None. Populates fit paramaters, cov, and R2 for each axis.
     '''
 
     # Select which axis to analyze; x=0 y=1
@@ -151,7 +146,7 @@ def gaussian_curve_fit(Image, axis=0):
     # Handle covariance output
     pcov_out = np.sqrt(np.diag(pcov))
 
-    # Store results dynamically in Image object
+    # Store results in Image object
     if axis == 0:
         Image.x_fit_params = popt
         Image.x_fit_cov = pcov_out
@@ -165,15 +160,19 @@ def gaussian_curve_fit(Image, axis=0):
     
     
 
-def integrate_gaussian(Image, axis = 0, start_limit = None, end_limit = None):
+def integrate_gaussian(Image, axis = 0):
     '''
     Provides analytical solution to the integral of a gaussian.
-
-    popt: List of gaussian parameters [Amplitude, Mean, SD]
-
-    pcov: List of gaussian parameter 1sigma errors [Amplitude, Mean, SD]
-
-    limits: Limits of integration (they default to all space in what space you are in)
+    
+    Parameters
+    ----------
+    Image: image object
+    axis : str
+        'x' or 'y' — which Gaussian profile to fit.
+    Returns
+    -------
+    None. Populates Area and error for each axis
+    
     '''
     
     if axis == 0:
@@ -197,25 +196,8 @@ def integrate_gaussian(Image, axis = 0, start_limit = None, end_limit = None):
     SD_error = pcov[2]
 
     # ----- Integration section -----
-    if start_limit is None and end_limit is None:
-        # Full-space Gaussian integral
-        Area = Amplitude * np.sqrt(2 * np.pi) * SD
-    else:
-        # Bounded integral (analytical using erf)
-        from math import erf, sqrt, pi
+    Area = Amplitude * np.sqrt(2 * np.pi) * SD
 
-        if start_limit is None:
-            start_limit = -np.inf
-        if end_limit is None:
-            end_limit = np.inf
-
-        def erf_term(x):
-            return erf((x - Mean) / (np.sqrt(2) * SD))
-
-        Area = Amplitude * np.sqrt(np.pi / 2) * SD * (erf_term(end_limit) - erf_term(start_limit))
-    # --------------------------------
-
-    # d(Area) = sqrt(2pi * (sigma^2(dA)^2 + A^2(dsigma)^2))
     first_term = SD**2 * Amplitude_error**2
     second_term = Amplitude**2 * SD_error**2
 
@@ -228,7 +210,6 @@ def integrate_gaussian(Image, axis = 0, start_limit = None, end_limit = None):
         Image.y_Area= Area
         Image.y_Area_error = Area_error
     
-    return Area, Area_error
 
     
     

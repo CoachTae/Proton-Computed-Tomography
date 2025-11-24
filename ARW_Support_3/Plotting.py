@@ -90,15 +90,11 @@ def gaussian_func(x, amplitude, mean, std_dev) -> float:
     '''
     return amplitude * np.exp(-((x - mean) / std_dev)**2 / 2)
 
-
-
 def plot_gaussian(Image,
                   axis=0,
                   fit = False, 
                   fontsize = 14, ticksize = 12, titlesize=20, pointsize=12, 
                   ylabel='Brightness',
-                  shift=None,
-                  center = True,
                   xleft=None, xright=None,
                   title = None,
                   show = False,
@@ -125,16 +121,13 @@ def plot_gaussian(Image,
         Plot elements
     ylabel : str
         Plot element
-    center: bool
-        Decides whether or not to attempt centering the gaussian at 0.
     xleft : int
         Crops the image to start at this x-value (recommended value is -10)
     xright : int 
         Crops the image to end at this x-value (recommended value is 10)
     shift  : float
         Optional manual shift of x-values before fitting.
-    pixelspace: bool
-        Option of if the plot will be in pixels or in mm. Defaults to pixels.
+
     show : bool
         Option to show plot
     save : bool
@@ -172,13 +165,6 @@ def plot_gaussian(Image,
         vertical = Image.y_Gaussian
         horizontal = Image.Y[:,0]
     
-    # Centering the plot at 0 using mean location calculated in gaussian_curve_fit()
-    if center:
-        horizontal = horizontal.astype(np.float64)
-        horizontal -= fitted[1]
-        fitted[1] = 0
-        
-
     # Matplotlib takes a list of point sizes for each point
     size = pointsize
     

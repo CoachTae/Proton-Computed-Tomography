@@ -26,6 +26,12 @@ class Image:
         self.y_fit_params = None
         self.y_fit_cov = None
         self.y_fit_R2 = None
+        self.x_Area= 0
+        self.y_Area= 0
+        self.x_Area_error = 0
+        self.y_Area_error = 0
+        self.x_centered = False
+        self.y_centered = False
 
         if process:
             # We can choose to automatically filter and subtract background
@@ -62,7 +68,11 @@ class Image:
                 if self.x_fit_params is not None:
                     self.x_fit_params[1:] *= self.mm_per_pixel 
                 if self.y_fit_params is not None:
-                    self.y_fit_params[1:] *= self.mm_per_pixel                     
+                    self.y_fit_params[1:] *= self.mm_per_pixel         
+                self.x_Area *= self.mm_per_pixel
+                self.y_Area *= self.mm_per_pixel
+                self.x_Area_error *= self.mm_per_pixel
+                self.y_Area_error *= self.mm_per_pixel
                 print("Spatial map converted into distance space.")
         else:
             print("You are already in distance space.")
@@ -89,7 +99,11 @@ class Image:
                 if self.x_fit_params is not None:
                     self.x_fit_params[1:] /= self.mm_per_pixel 
                 if self.y_fit_params is not None:
-                    self.y_fit_params[1:] /= self.mm_per_pixel     
+                    self.y_fit_params[1:] /= self.mm_per_pixel   
+                self.x_Area /= self.mm_per_pixel
+                self.y_Area /= self.mm_per_pixel
+                self.x_Area_error /= self.mm_per_pixel
+                self.y_Area_error /= self.mm_per_pixel
                 print("Spatial map converted into pixelspace.")
 
 
@@ -148,7 +162,7 @@ class Image:
                 self.X += int(amount)
                 self.X_Shift += int(amount)
                 if self.x_fit_params is not None:
-                    self.x_fit_params[1] += int(amount)                    
+                    self.x_fit_params[1] += int(amount)       
             else:
                 self.X += amount
                 self.X_Shift += amount
@@ -169,7 +183,35 @@ class Image:
         else:
             print("Not a valid direction.")
         
-    
+    def center_plot(self, axis = 0):
+        '''
+        Centers Image at 0 for future use in plotting.  
+        '''    
+        if axis not in [0, 1]:
+            print('Invalid axis entry')
+            return
+        
+        if axis==0:
+            ax = 'x'
+            # Checking if x_Gaussian is populated
+            if self.x_Gaussian == 0: 
+                self.gaussian_2d(axis = 0)
+            if self.x_fit_params is None:
+                self.gaussian_curve_fit(axis=axis)
+            shift = -self.x_fit_params[1]
+            self.x_centered = True
+
+        else:
+            ax = 'y'
+            # Checking if y_Gaussian is populated
+            if self.y_Gaussian == 0: 
+                self.gaussian_2d(axis = 0)
+            if self.y_fit_params is None:
+                self.gaussian_curve_fit(axis=axis)
+            shift = -self.y_fit_params[1]
+            self.y_centered = True
+        self.shift_spatial_map(direction = ax, amount = shift)
+        print("Spatial map in " , ax, " direction centered at 0")
 
     def apply_median_filter(self):
         '''
@@ -288,8 +330,7 @@ class Image:
                       fit = False,
                       fontsize = 14, ticksize = 12, titlesize=20, pointsize=12, 
                       ylabel='Brightness',
-                      shift=None,
-                      center = True,
+
                       xleft=None, xright=None,
                       title = None,
                       show = False,
@@ -297,21 +338,79 @@ class Image:
                       file_name = ''):
         return Plot.plot_gaussian(self, axis=axis, fit = fit, fontsize = fontsize,
                           ticksize = ticksize, titlesize=titlesize, pointsize=pointsize,
-                          ylabel=ylabel, shift=shift, center = center, xleft=xleft, 
+                          ylabel=ylabel, xleft=xleft, 
                           xright=xright, title = title,show = show, save = save, 
                           file_name = file_name)
         
         
-    def integrate_gaussian(self, axis = 0, start_limit = None, end_limit = None):
-        return GA.integrate_gaussian(self, axis=axis, start_limit=start_limit, end_limit=end_limit)
+    def integrate_gaussian(self, axis = 0):
+        return GA.integrate_gaussian(self, axis=axis)
         
-        
-        
-        
-        
-        
-        
-        
+    #----------------------------------------------------------------------#
+    # The next two functions relate to saving and reloading Image objects. # 
+    #----------------------------------------------------------------------# 
+    
+    def to_dict(self):
+        """Convert all attributes to JSON-safe form."""
+        return {
+            "filename": self.filename,
+            "median_filter_applied": self.median_filter_applied,
+            "background_subtracted": self.background_subtracted,
+            "mm_per_pixel": self.mm_per_pixel,
+            "is_pixelspace": self.is_pixelspace,
+            "X_Shift": self.X_Shift,
+            "Y_Shift": self.Y_Shift,
+
+            # Arrays -> lists
+            "image": self.image.tolist() if self.image is not None else None,
+            "X": self.X.tolist() if isinstance(self.X, np.ndarray) else None,
+            "Y": self.Y.tolist() if isinstance(self.Y, np.ndarray) else None,
+            "x_Gaussian": self.x_Gaussian.tolist() if isinstance(self.x_Gaussian, np.ndarray) else None,
+            "y_Gaussian": self.y_Gaussian.tolist() if isinstance(self.y_Gaussian, np.ndarray) else None,
+
+
+            # Fit params and covariance (lists or np arrays)
+            "x_fit_params": self.x_fit_params.tolist() if hasattr(self, "x_fit_params") else None,
+            "y_fit_params": self.y_fit_params.tolist() if hasattr(self, "y_fit_params") else None,
+            "x_fit_cov": self.x_fit_cov.tolist() if hasattr(self, "x_fit_cov") else None,
+            "y_fit_cov": self.y_fit_cov.tolist() if hasattr(self, "y_fit_cov") else None,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Rebuild Image object from JSON-safe dictionary."""
+        img = cls(filename=data["filename"],
+                  process=False,
+                  mm_per_pixel=data["mm_per_pixel"])
+
+        # Basic flags & metadata
+        img.median_filter_applied = data["median_filter_applied"]
+        img.background_subtracted = data["background_subtracted"]
+        img.is_pixelspace = data["is_pixelspace"]
+        img.X_Shift = data["X_Shift"]
+        img.Y_Shift = data["Y_Shift"]
+
+        # Arrays rebuilt
+        img.image = np.array(data["image"]) if data["image"] is not None else None
+        img.X = np.array(data["X"]) if data["X"] is not None else None
+        img.Y = np.array(data["Y"]) if data["Y"] is not None else None
+
+        # Gaussian 1D slices
+        img.x_Gaussian = np.array(data["x_Gaussian"]) if data["x_Gaussian"] is not None else None
+        img.y_Gaussian = np.array(data["y_Gaussian"]) if data["y_Gaussian"] is not None else None
+
+        # Fit parameters
+        img.x_fit_params = np.array(data["x_fit_params"]) if data["x_fit_params"] is not None else None
+        img.y_fit_params = np.array(data["y_fit_params"]) if data["y_fit_params"] is not None else None
+
+        # Fit covariances
+        img.x_fit_cov = np.array(data["x_fit_cov"]) if data["x_fit_cov"] is not None else None
+        img.y_fit_cov = np.array(data["y_fit_cov"]) if data["y_fit_cov"] is not None else None
+
+        return img
+
+
+
         
         
         
