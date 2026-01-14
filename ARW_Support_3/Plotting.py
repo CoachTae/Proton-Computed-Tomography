@@ -174,16 +174,9 @@ def plot_gaussian(Image,
     # Plot data and fit
     if fit:
         gaussian_vals = gaussian_func(horizontal, fitted[0] , fitted[1], fitted[2])
-        plt.plot(horizontal, gaussian_vals, label='Gaussian Fit', color='blue')
-        plt.legend()
-    plt.scatter(horizontal, vertical, color='red', s=size)    
-    
-    # Handling the x axis in terms of pixles or mm
-    if not Image.is_pixelspace:
-        ax.set_xlabel('Distance (mm)', fontsize=fontsize)
-    else:
-        ax.set_xlabel('Pixel Number', fontsize=fontsize)
-    ax.set_ylabel(ylabel, fontsize=fontsize)
+        ax.plot(horizontal, gaussian_vals, label='Gaussian Fit', color='blue')
+        ax.legend()
+    ax.scatter(horizontal, vertical, color='red', s=size)    
     
     # For cropping the x-axis manually
     if xright is None and xleft is None:
@@ -195,14 +188,21 @@ def plot_gaussian(Image,
     else:
         ax.set_xlim(xleft, xright)
     # Plot elements
-    plt.xticks(fontsize=ticksize)
-    plt.yticks(fontsize=ticksize)
-    ax.set_title(title, fontsize=titlesize)
     
-    if show:
-        plt.show()
-
+    # Handling the x axis in terms of pixles or mm
+    if not Image.is_pixelspace:
+        ax.set_xlabel('Distance (mm)', fontsize=fontsize)
+    else:
+        ax.set_xlabel('Pixel Number', fontsize=fontsize)
+    
+    ax.set_ylabel(ylabel, fontsize=fontsize)
+    ax.set_title(title, fontsize=titlesize)
+    ax.tick_params(axis='both', labelsize=ticksize)
+    
     if save:
         plt.savefig(file_name, dpi=800)
-        plt.close()
+    if show:
+        plt.show()
+    plt.close()
+
     

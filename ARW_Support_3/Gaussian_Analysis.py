@@ -120,6 +120,18 @@ def gaussian_curve_fit(Image, axis=0):
         print("invalid axis input")
         return 
     
+    # Checking that brightness is high enough
+    
+    if vertical is None:
+        raise ValueError("Gaussian profile not computed.")
+
+    if not np.isfinite(vertical).any():
+        raise ValueError("Brightness too low — image is not useful.")
+
+    if np.nanmax(vertical) <= 0:
+        raise ValueError("Brightness too low — image is not useful.")
+    
+    
     # Obtain initial guesses for fit
     
     mu = weighted_mean(horizontal, vertical)

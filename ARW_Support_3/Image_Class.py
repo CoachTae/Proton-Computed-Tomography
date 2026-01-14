@@ -32,6 +32,9 @@ class Image:
         self.y_Area_error = 0
         self.x_centered = False
         self.y_centered = False
+        
+        self.is_valid = True
+        self.failure_reason = None
 
         if process:
             # We can choose to automatically filter and subtract background
@@ -360,20 +363,28 @@ class Image:
             "is_pixelspace": self.is_pixelspace,
             "X_Shift": self.X_Shift,
             "Y_Shift": self.Y_Shift,
-
+            "x_Area": self.x_Area,
+            "y_Area": self.y_Area,
+            "x_Area_error": self.x_Area_error,
+            "y_Area_error": self.y_Area_error,
+            "x_centered": self.x_centered,
+            "y_centered": self.y_centered,
+            "is_valid": self.is_valid,
+            "failure_reason": self.failure_reason,
+            
             # Arrays -> lists
             "image": self.image.tolist() if self.image is not None else None,
             "X": self.X.tolist() if isinstance(self.X, np.ndarray) else None,
             "Y": self.Y.tolist() if isinstance(self.Y, np.ndarray) else None,
-            "x_Gaussian": self.x_Gaussian.tolist() if isinstance(self.x_Gaussian, np.ndarray) else None,
-            "y_Gaussian": self.y_Gaussian.tolist() if isinstance(self.y_Gaussian, np.ndarray) else None,
+            "x_Gaussian": self.x_Gaussian if isinstance(self.x_Gaussian, list) else None,
+            "y_Gaussian": self.y_Gaussian if isinstance(self.y_Gaussian, list) else None,
 
 
             # Fit params and covariance (lists or np arrays)
-            "x_fit_params": self.x_fit_params.tolist() if hasattr(self, "x_fit_params") else None,
-            "y_fit_params": self.y_fit_params.tolist() if hasattr(self, "y_fit_params") else None,
-            "x_fit_cov": self.x_fit_cov.tolist() if hasattr(self, "x_fit_cov") else None,
-            "y_fit_cov": self.y_fit_cov.tolist() if hasattr(self, "y_fit_cov") else None,
+            "x_fit_params": self.x_fit_params.tolist() if isinstance(self.x_fit_params, np.ndarray) else self.x_fit_params,
+            "y_fit_params": self.y_fit_params.tolist() if isinstance(self.y_fit_params, np.ndarray) else self.y_fit_params,
+            "x_fit_cov": self.x_fit_cov.tolist() if isinstance(self.x_fit_cov, np.ndarray) else self.x_fit_cov,
+            "y_fit_cov": self.y_fit_cov.tolist() if isinstance(self.y_fit_cov, np.ndarray) else self.y_fit_cov,
         }
     
     @classmethod
@@ -383,21 +394,29 @@ class Image:
                   process=False,
                   mm_per_pixel=data["mm_per_pixel"])
 
-        # Basic flags & metadata
+        # Basic flags  and data
         img.median_filter_applied = data["median_filter_applied"]
         img.background_subtracted = data["background_subtracted"]
         img.is_pixelspace = data["is_pixelspace"]
         img.X_Shift = data["X_Shift"]
         img.Y_Shift = data["Y_Shift"]
+        img.x_Area = data["x_Area"]
+        img.y_Area = data["y_Area"]
+        img.x_Area_error = data["x_Area_error"]
+        img.y_Area_error = data["y_Area_error"]
+        img.x_centered = data["x_centered"]
+        img.y_centered = data["y_centered"]
+        img.is_valid = data["is_valid"]
+        img.failure_reason = data["failure_reason"]
 
-        # Arrays rebuilt
+        # Rebuilding Arrays
         img.image = np.array(data["image"]) if data["image"] is not None else None
         img.X = np.array(data["X"]) if data["X"] is not None else None
         img.Y = np.array(data["Y"]) if data["Y"] is not None else None
 
         # Gaussian 1D slices
-        img.x_Gaussian = np.array(data["x_Gaussian"]) if data["x_Gaussian"] is not None else None
-        img.y_Gaussian = np.array(data["y_Gaussian"]) if data["y_Gaussian"] is not None else None
+        img.x_Gaussian = data["x_Gaussian"] if data["x_Gaussian"] is not None else None
+        img.y_Gaussian = data["y_Gaussian"] if data["y_Gaussian"] is not None else None
 
         # Fit parameters
         img.x_fit_params = np.array(data["x_fit_params"]) if data["x_fit_params"] is not None else None
