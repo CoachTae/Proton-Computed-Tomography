@@ -126,6 +126,7 @@ def gaussian_curve_fit(Image, axis=0):
         raise ValueError("Gaussian profile not computed.")
 
     if not np.isfinite(vertical).any():
+        
         raise ValueError("Brightness too low — image is not useful.")
 
     if np.nanmax(vertical) <= 0:
@@ -141,11 +142,21 @@ def gaussian_curve_fit(Image, axis=0):
     amp = estimate_amplitude(horizontal, vertical, mu, sigma)
     
     # Fit curve:
+# %%
     popt, pcov = curve_fit(
-        gaussian_func, horizontal, vertical,
-        p0=[amp, mu, sigma] , bounds=([0,0,0],[np.inf, np.inf, np.inf])
-    )
 
+        gaussian_func, horizontal, vertical,
+        p0=[amp, mu, sigma] , 
+        bounds=([0,0,0],[np.inf, np.inf, np.inf])
+    )
+    
+    # Checking that fits are not unreasonable
+    EPS = 1e-12
+    if (not np.isfinite([amp, mu, sigma]).all()
+        or abs(amp) < EPS
+        or abs(mu) < EPS
+        or abs(sigma) < EPS):
+        raise ValueError("Bad Fit - image flagged as invalid")
     # Compute fitted Gaussian
     fitted = gaussian_func(horizontal, *popt)
 

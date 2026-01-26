@@ -9,6 +9,7 @@ class Manager:
     def __init__(self):
         self.images = {}
         self.image_paths = {}
+        self.review_images = {}
     
     def create_image(self, name, filename, process=False, mm_per_pixel=0.05487):
         '''
@@ -18,7 +19,7 @@ class Manager:
         self.images[name] = img
         return img
     
-    def create_complete_image(self, name, filename, process=True, mm_per_pixel=0.05487):
+    def create_complete_image(self, name, filename, process=True, crop = False, mm_per_pixel=0.05487):
         '''
         creates Image_Class Image object AND populates all saveable variables for an Image object.
         i.e. processed, spatial maps, side views, fit paramaters, centers plot, obtains area, etc. 
@@ -48,11 +49,14 @@ class Manager:
             img.failure_reason = str(e)
             
             print(f"[REJECTED] {name}: {e}")
+            self.review_images[name] = img
             self.images.pop(name, None)
+            
             
         except Exception as e:
             # Real unexpected error
             print(f"[ERROR] {name}: {e}")
+            self.review_images[name] = img
             self.images.pop(name, None)
             raise
         
@@ -71,7 +75,7 @@ class Manager:
         # If no path given, try to reuse old one
         if output_path is None:
             if name not in self.image_paths:
-                raise ValueError("No previous save path. Use save_image_as().")
+                print("No previous save path")
             output_path = self.image_paths[name]
         else:
             output_path = Path(output_path)

@@ -117,9 +117,17 @@ def crop_image(Image, xstart, xend, ystart, yend):
     # Apply crop
     Image.image = Image.image[ystart_idx:yend_idx, xstart_idx:xend_idx]
 
-    # Also crop the spatial maps if they exist
+
+    # Crop spatial maps
     if Image.X is not None and Image.Y is not None:
         Image.X = Image.X[ystart_idx:yend_idx, xstart_idx:xend_idx]
         Image.Y = Image.Y[ystart_idx:yend_idx, xstart_idx:xend_idx]
+
+    # Crop Gaussian side profiles
+    if isinstance(Image.x_Gaussian, list):
+        Image.x_Gaussian = Image.x_Gaussian[xstart_idx:xend_idx]
+
+    if isinstance(Image.y_Gaussian, list):
+        Image.y_Gaussian = Image.y_Gaussian[ystart_idx:yend_idx]
 
 
