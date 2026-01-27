@@ -13,8 +13,9 @@ import math
 
 start_time = time.time()
 
-
+#%%
 #------------------------Test Code----------------------------------------------
+
 
 with open('Database.json', 'r') as file:
     database = json.load(file)
@@ -25,12 +26,9 @@ for folder in database.keys():
         Image = img(file, process=True)
         x_cen, y_cen = Image.find_center()
         print(f'{folder} -> {file}:')
-        Image.shift_spatial_map("X", -x_cen)
-        Image.shift_spatial_map("Y", -y_cen)
-        Image.pixelspace_off()
-        #Image.pixelspace_on()
-        Image.crop_image(int(-20), int(20), int(-20), int(20))
-        Image.plot_3d()
+        Image.gaussian_2d()
+        plt.plot(Image.x_Gaussian)
+        print('\n\n\n')
 sys.exit()
 
 with open('Database.json', 'r') as file:

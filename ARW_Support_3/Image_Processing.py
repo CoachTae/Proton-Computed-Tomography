@@ -1,6 +1,7 @@
 import os
 import rawpy
 import numpy as np
+import glob
 import sys
 from scipy.ndimage import median_filter
 
@@ -38,19 +39,8 @@ def open_bayer(file: str) -> np.ndarray:
         sys.exit()
 
 
-
-
-
-
-
-
 def apply_median_filter(image, size=(3,3)):
     return median_filter(image, size)
-
-
-
-
-
 
 
 def subtract_background(image, subtract=575, autosubtract=False):
@@ -78,34 +68,66 @@ def subtract_background(image, subtract=575, autosubtract=False):
         return image
 
 
-
-
-
-
-def find_center(Image) -> tuple[float, float]:
+def crop_image(Image, xstart, xend, ystart, yend):
     '''
-    Intended to find the center of the Gaussian beam in the current representation
-    space.
+    Crops the image and spatial maps (X and Y) to a specified rectangular region.
+    Units of parameters should be consistent with whatever spatial units you're using (mm or pixels)
 
     Parameters:
-        Image: Image object as defined in Image_Class.py
+        Image: Image object from the ARW3 package.
+        xstart, xend: Horizontal (column) pixel/mm limits
+        ystart, yend: Vertical (row) pixel/mm limits
 
-    Returns:
-        x_center, y_center
+    This method modifies the current image in-place.
     '''
 
-    # Make sure we have a space to operate in
     if Image.X is None or Image.Y is None:
         Image.get_spatial_map()
 
-    image = Image.image.astype(np.float64)
-    X = Image.X.astype(np.float64)
-    Y = Image.Y.astype(np.float64)
+    # Find closest indices corresponding to the provided value
+    x_axis = Image.X[0] # Take one row
+    y_axis = Image.Y[:,0] # Take on column
 
-    total = np.sum(image)
-    x_center = np.sum(image * X) / total
-    y_center = np.sum(image * Y) / total
+    # Find index closest to each spatial bound
+    if xstart is None:
+        xstart_idx = 0
+    else:
+        xstart_idx = np.argmin(np.abs(x_axis - xstart))
 
-    return x_center, y_center
-    
+
+    if xend is None:
+        xend_idx = len(x_axis)
+    else:
+        xend_idx = np.argmin(np.abs(x_axis - xend)) + 1 # +1 to be inclusive
+
+
+
+    if ystart is None:
+        ystart_idx = 0
+    else:
+        ystart_idx = np.argmin(np.abs(y_axis - ystart))
+
+
+    if yend is None:
+        yend_idx = len(y_axis)
+    else:
+        yend_idx = np.argmin(np.abs(y_axis - yend)) + 1
+
+
+    # Apply crop
+    Image.image = Image.image[ystart_idx:yend_idx, xstart_idx:xend_idx]
+
+
+    # Crop spatial maps
+    if Image.X is not None and Image.Y is not None:
+        Image.X = Image.X[ystart_idx:yend_idx, xstart_idx:xend_idx]
+        Image.Y = Image.Y[ystart_idx:yend_idx, xstart_idx:xend_idx]
+
+    # Crop Gaussian side profiles
+    if isinstance(Image.x_Gaussian, list):
+        Image.x_Gaussian = Image.x_Gaussian[xstart_idx:xend_idx]
+
+    if isinstance(Image.y_Gaussian, list):
+        Image.y_Gaussian = Image.y_Gaussian[ystart_idx:yend_idx]
+
 
