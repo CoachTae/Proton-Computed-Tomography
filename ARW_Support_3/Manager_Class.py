@@ -32,13 +32,13 @@ class Manager:
             # -------- X axis --------
             img.gaussian_2d(axis=0)
             img.gaussian_curve_fit(axis=0)
-            img.center_plot(axis=0)
+            #img.center_plot(axis=0)
             img.integrate_gaussian(axis=0)
             
             # -------- Y axis --------
             img.gaussian_2d(axis=1)
             img.gaussian_curve_fit(axis=1)
-            img.center_plot(axis=1)
+            #img.center_plot(axis=1)
             img.integrate_gaussian(axis=1)
             
             img.is_valid = True

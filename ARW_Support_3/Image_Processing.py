@@ -5,38 +5,109 @@ import glob
 import sys
 from scipy.ndimage import median_filter
 
-def open_bayer(file: str) -> np.ndarray:
-    '''
-    Opens the bayer layer of a given ARW file.
-    
-    file should be a string filename ending in .ARW
+# --- Basler ace2 a2A2448-75ucPRO native resolution ---
+BASLER_WIDTH  = 2448
+BASLER_HEIGHT = 2048
 
-    return: 2D numpy array of pixel values
-    '''
 
-    base_dir = os.getcwd()  # Base directory where program is located
+def open_bayer(file: str, normalize=False, verbose=False) -> np.ndarray:
+    """
+    Opens Bayer-layer data from Sony ARW or Basler RAW files.
 
-    # Path to ARW Files folder
-    arw_files_dir = os.path.join(base_dir, 'Images', 'ARW Files')
+    Sony ARW  -> rawpy
+    Basler RAW -> auto-detected binary loader
 
-    # Initialize as False in case a file is never found
-    found_file_path = False
-    
-    for root, dirs, files in os.walk(arw_files_dir):
-        if file in files:
-            found_file_path = os.path.join(root, file)
-            break
+    Returns
+    -------
+    2D numpy array of Bayer values
+    """
 
-    if found_file_path:
+    file_ext = os.path.splitext(file)[1].lower()
+
+    # ==========================================================
+    # Sony ARW files (DSLR RAW)
+    # ==========================================================
+    if file_ext == ".arw":
+
+        base_dir = os.getcwd()
+        arw_files_dir = os.path.join(base_dir, 'Images', 'ARW Files')
+
+        found_file_path = None
+        for root, dirs, files in os.walk(arw_files_dir):
+            if file in files:
+                found_file_path = os.path.join(root, file)
+                break
+
+        if not found_file_path:
+            raise FileNotFoundError(f"{file} not found under {arw_files_dir}")
+
         with rawpy.imread(found_file_path) as raw:
             image = raw.raw_image.copy()
 
+        if normalize:
+            image = image.astype(np.float32)
+            image /= image.max()
+
+        if verbose:
+            print(f"[ARW] Loaded {file} | shape={image.shape} dtype={image.dtype}")
+
         return image
 
+    # ==========================================================
+    # Basler RAW files (industrial camera)
+    # ==========================================================
+    elif file_ext == ".raw":
+
+        if not os.path.exists(file):
+            raise FileNotFoundError(file)
+
+        file_size = os.path.getsize(file)
+        n_pixels = BASLER_WIDTH * BASLER_HEIGHT
+
+        # --- Detect storage format ---
+        if file_size == n_pixels:
+            dtype = np.uint8
+            container = "8-bit"
+        elif file_size == n_pixels * 2:
+            dtype = np.uint16
+            container = "16-bit container"
+        else:
+            raise ValueError(
+                f"[Basler RAW] Unexpected file size: {file_size} bytes "
+                f"(expected {n_pixels} or {n_pixels*2})"
+            )
+
+        data = np.fromfile(file, dtype=dtype)
+
+        if data.size != n_pixels:
+            raise ValueError("[Basler RAW] Pixel count mismatch.")
+
+        image = data.reshape((BASLER_HEIGHT, BASLER_WIDTH))
+
+        # --- Infer likely sensor bit depth ---
+        max_val = int(image.max())
+        if max_val <= 1023:
+            bit_depth = "10-bit"
+        elif max_val <= 4095:
+            bit_depth = "12-bit"
+        else:
+            bit_depth = "16-bit"
+
+        if normalize:
+            image = image.astype(np.float32)
+            image /= image.max()
+
+        if verbose:
+            print(f"[Basler RAW] Loaded {file}")
+            print(f"             {container}, likely {bit_depth}, "
+                  f"shape={image.shape}, dtype={image.dtype}")
+
+        return image
+
+    # ==========================================================
     else:
-        print("File Not Found.")
-        print("Error occured in 'open_bayer' function.")
-        sys.exit()
+        raise ValueError(f"Unsupported file type: {file_ext}")
+        
 
 
 def apply_median_filter(image, size=(3,3)):

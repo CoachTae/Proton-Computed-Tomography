@@ -7,11 +7,11 @@ class Image:
     def __init__(self,
                  filename: str,
                  process: bool = False,
-                 mm_per_pixel: float = 0.05487):
+                 mm_per_pixel: float = 0.00274): #0.05487
         self.filename = filename
         self.image = IP.open_bayer(self.filename)
         self.median_filter_applied = False
-        self.background_subtracted = 0
+        self.background_subtracted = 575
         self.mm_per_pixel = mm_per_pixel
         self.is_pixelspace = False
         self.X = None
@@ -235,7 +235,7 @@ class Image:
         
 
     def subtract_background(self,
-                            subtract = 575,
+                            subtract = 5,
                             autosubtract = False):
         '''
         Defines how much pixel value we subtract from every pixel in the image.
@@ -339,7 +339,7 @@ class Image:
                       show = False,
                       save = False,
                       file_name = ''):
-        return Plot.plot_gaussian(self, axis=axis, fit = fit, fontsize = fontsize,
+        Plot.plot_gaussian(self, axis=axis, fit = fit, fontsize = fontsize,
                           ticksize = ticksize, titlesize=titlesize, pointsize=pointsize,
                           ylabel=ylabel, xleft=xleft, 
                           xright=xright, title = title,show = show, save = save, 

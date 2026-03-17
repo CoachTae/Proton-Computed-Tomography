@@ -138,11 +138,11 @@ def gaussian_curve_fit(Image, axis=0):
     mu = weighted_mean(horizontal, vertical)
     
     sigma = weighted_variance(horizontal, vertical, mu)
-
+    
     amp = estimate_amplitude(horizontal, vertical, mu, sigma)
     
     # Fit curve:
-# %%
+
     popt, pcov = curve_fit(
 
         gaussian_func, horizontal, vertical,
